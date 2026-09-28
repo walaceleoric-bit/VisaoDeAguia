@@ -15,11 +15,16 @@ namespace VisaoDeAguia.Data
 
         public DbSet<SinalEnviado> SinaisEnviados { get; set; }
 
+        public DbSet<ConsumoDiarioRobo> ConsumosDiariosRobo { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // Configuração do robô
+            // =========================================
+            // CONFIGURAÇÃO DO ROBÔ
+            // =========================================
+
             builder.Entity<ConfiguracaoRobo>()
                 .HasIndex(c => c.UsuarioId)
                 .IsUnique();
@@ -30,7 +35,10 @@ namespace VisaoDeAguia.Data
                 .HasForeignKey<ConfiguracaoRobo>(c => c.UsuarioId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Histórico de sinais enviados
+            // =========================================
+            // HISTÓRICO DE SINAIS
+            // =========================================
+
             builder.Entity<SinalEnviado>()
                 .HasOne(s => s.Usuario)
                 .WithMany()
@@ -46,6 +54,26 @@ namespace VisaoDeAguia.Data
                     s.Simbolo,
                     s.Direcao,
                     s.DataHoraVela
+                })
+                .IsUnique();
+
+            // =========================================
+            // CONSUMO DIÁRIO DO ROBÔ
+            // =========================================
+
+            builder.Entity<ConsumoDiarioRobo>()
+                .HasOne(c => c.Usuario)
+                .WithMany()
+                .HasForeignKey(c => c.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Cada usuário terá apenas um registro
+            // de consumo para cada dia.
+            builder.Entity<ConsumoDiarioRobo>()
+                .HasIndex(c => new
+                {
+                    c.UsuarioId,
+                    c.Data
                 })
                 .IsUnique();
         }

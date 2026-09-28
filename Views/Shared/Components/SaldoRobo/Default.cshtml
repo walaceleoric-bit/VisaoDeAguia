@@ -1,0 +1,288 @@
+﻿@model VisaoDeAguia.Models.SaldoRoboViewModel
+
+@{
+    var percentualUtilizado =
+        Model.LimiteMinutos > 0
+            ? (Model.MinutosUtilizados * 100.0 / Model.LimiteMinutos)
+            : 0;
+
+    percentualUtilizado =
+        Math.Clamp(percentualUtilizado, 0, 100);
+
+    var horasDisponiveis =
+        Model.MinutosDisponiveis / 60;
+
+    var minutosDisponiveis =
+        Model.MinutosDisponiveis % 60;
+
+    var horasUtilizadas =
+        Model.MinutosUtilizados / 60;
+
+    var minutosUtilizados =
+        Model.MinutosUtilizados % 60;
+
+    var tempoDisponivel =
+        $"{horasDisponiveis:00}h {minutosDisponiveis:00}min";
+
+    var tempoUtilizado =
+        $"{horasUtilizadas:00}h {minutosUtilizados:00}min";
+
+    var classeStatus = "saldo-verde";
+    var classeBarra = "barra-verde";
+    var iconeStatus = "●";
+    var textoStatus = "DISPONÍVEL";
+
+    if (Model.MinutosDisponiveis <= 0)
+    {
+        classeStatus = "saldo-vermelho";
+        classeBarra = "barra-vermelha";
+        textoStatus = "LIMITE ESGOTADO";
+    }
+    else if (Model.PercentualDisponivel <= 15)
+    {
+        classeStatus = "saldo-amarelo";
+        classeBarra = "barra-amarela";
+        textoStatus = "SALDO BAIXO";
+    }
+}
+
+<div class="saldo-robo-container">
+    <div class="saldo-robo-card @classeStatus">
+
+        <div class="saldo-robo-topo">
+            <div>
+                <span class="saldo-robo-label">
+                    TEMPO DE ANÁLISE HOJE
+                </span>
+
+                <div class="saldo-robo-tempo">
+                    @tempoDisponivel
+                </div>
+
+                <span class="saldo-robo-subtitulo">
+                    disponíveis
+                </span>
+            </div>
+
+            <div class="saldo-robo-status">
+                <span class="saldo-robo-status-ponto">
+                    @iconeStatus
+                </span>
+
+                @textoStatus
+            </div>
+        </div>
+
+        <div class="saldo-robo-barra-fundo">
+            <div class="saldo-robo-barra @classeBarra"
+                 style="width: @(percentualUtilizado.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%">
+            </div>
+        </div>
+
+        <div class="saldo-robo-detalhes">
+
+            <div>
+                <span>Utilizado hoje</span>
+
+                <strong>
+                    @tempoUtilizado
+                </strong>
+            </div>
+
+            <div>
+                <span>Limite diário</span>
+
+                <strong>
+                    02h 30min
+                </strong>
+            </div>
+
+            <div>
+                <span>Renovação</span>
+
+                <strong>
+                    00:00
+                </strong>
+            </div>
+
+        </div>
+
+        @if (Model.MinutosDisponiveis <= 0)
+        {
+            <div class="saldo-robo-aviso">
+                🔴 Seu tempo diário de análise foi utilizado.
+                Um novo período estará disponível à meia-noite.
+            </div>
+        }
+        else if (Model.PercentualDisponivel <= 15)
+        {
+            <div class="saldo-robo-aviso">
+                🟡 Seu tempo de análise está próximo do limite diário.
+            </div>
+        }
+
+    </div>
+</div>
+
+<style>
+    .saldo-robo-container {
+        width: 100%;
+        max-width: 1320px;
+        margin: 18px auto 0;
+        padding: 0 12px;
+    }
+
+    .saldo-robo-card {
+        background: rgba(8, 15, 21, 0.96);
+        border: 1px solid #1e3542;
+        border-radius: 12px;
+        padding: 16px 20px;
+        transition: 0.25s ease;
+    }
+
+    .saldo-robo-topo {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .saldo-robo-label {
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 1.6px;
+        color: #8295a3;
+        margin-bottom: 2px;
+    }
+
+    .saldo-robo-tempo {
+        font-size: 24px;
+        line-height: 1.1;
+        font-weight: 800;
+    }
+
+    .saldo-robo-subtitulo {
+        font-size: 11px;
+        color: #7e909c;
+    }
+
+    .saldo-robo-status {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.8px;
+        white-space: nowrap;
+    }
+
+    .saldo-robo-status-ponto {
+        margin-right: 5px;
+    }
+
+    .saldo-robo-barra-fundo {
+        height: 5px;
+        margin-top: 13px;
+        background: #16232b;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .saldo-robo-barra {
+        height: 100%;
+        border-radius: 20px;
+        transition: width 0.4s ease;
+    }
+
+    .saldo-robo-detalhes {
+        display: flex;
+        justify-content: space-between;
+        gap: 25px;
+        margin-top: 10px;
+    }
+
+    .saldo-robo-detalhes div {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 11px;
+    }
+
+    .saldo-robo-detalhes span {
+        color: #738793;
+    }
+
+    .saldo-robo-detalhes strong {
+        color: #dce7ed;
+        font-weight: 600;
+    }
+
+    .saldo-robo-aviso {
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid #1b2c35;
+        font-size: 11px;
+        color: #b7c5cc;
+    }
+
+    .saldo-verde {
+        border-color: rgba(0, 230, 150, 0.32);
+    }
+
+    .saldo-verde .saldo-robo-tempo,
+    .saldo-verde .saldo-robo-status {
+        color: #00e696;
+    }
+
+    .barra-verde {
+        background: #00e696;
+    }
+
+    .saldo-amarelo {
+        border-color: rgba(255, 193, 7, 0.45);
+    }
+
+    .saldo-amarelo .saldo-robo-tempo,
+    .saldo-amarelo .saldo-robo-status {
+        color: #ffc107;
+    }
+
+    .barra-amarela {
+        background: #ffc107;
+    }
+
+    .saldo-vermelho {
+        border-color: rgba(255, 72, 72, 0.50);
+    }
+
+    .saldo-vermelho .saldo-robo-tempo,
+    .saldo-vermelho .saldo-robo-status {
+        color: #ff4848;
+    }
+
+    .barra-vermelha {
+        background: #ff4848;
+    }
+
+    @@media (max-width: 768px) {
+
+        .saldo-robo-container {
+            margin-top: 12px;
+        }
+
+        .saldo-robo-card {
+            padding: 14px;
+        }
+
+        .saldo-robo-tempo {
+            font-size: 21px;
+        }
+
+        .saldo-robo-detalhes {
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .saldo-robo-status {
+            font-size: 9px;
+        }
+    }
+</style>

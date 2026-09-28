@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
 
     <title>@ViewData["Title"] - Visão de Águia</title>
 
@@ -124,11 +125,24 @@
 
     </header>
 
+
+    @* =========================================
+       SALDO DIÁRIO DO ROBÔ
+       Aparece somente para usuário autenticado.
+       ========================================= *@
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        @await Component.InvokeAsync("SaldoRobo")
+    }
+
+
     <main role="main">
 
         @RenderBody()
 
     </main>
+
 
     <footer class="rodape-visao">
 
@@ -140,7 +154,8 @@
                  class="rodape-logo" />
 
             <div class="rodape-desenvolvido">
-                Desenvolvido por <strong>WLC Sistemas</strong>
+                Desenvolvido por
+                <strong>WLC Sistemas</strong>
             </div>
 
             <div class="rodape-contato">
@@ -154,12 +169,14 @@
             </div>
 
             <div class="rodape-copy">
-                © @DateTime.Now.Year Visão de Águia. Todos os direitos reservados.
+                © @DateTime.Now.Year Visão de Águia.
+                Todos os direitos reservados.
             </div>
 
         </div>
 
     </footer>
+
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
@@ -168,7 +185,9 @@
     <script src="~/js/site.js"
             asp-append-version="true"></script>
 
-    @await RenderSectionAsync("Scripts", required: false)
+    @await RenderSectionAsync(
+        "Scripts",
+        required: false)
 
 </body>
 
