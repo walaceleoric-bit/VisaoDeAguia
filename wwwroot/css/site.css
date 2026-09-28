@@ -1,22 +1,761 @@
 html {
-  font-size: 14px;
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+    html {
+        font-size: 16px;
+    }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+:root {
+    --fundo-principal: #05080d;
+    --fundo-secundario: #0a1018;
+    --fundo-card: #0d1520;
+    --texto-principal: #f5f7fa;
+    --texto-secundario: #9da9b8;
+    --destaque: #00b7ff;
+    --destaque-claro: #55d2ff;
+    --verde: #2ee59d;
+    --borda: rgba(255, 255, 255, 0.08);
+    /*
+       TRANSPARÊNCIA DO VÍDEO
+
+       0.10 = vídeo bem apagado
+       0.25 = discreto
+       0.40 = bem visível
+       0.60 = muito visível
+
+       Altere SOMENTE este número quando quiser
+       aumentar ou diminuir a presença do vídeo.
+    */
+    --transparencia-video: 0.32;
+    /*
+       ESCURECIMENTO SOBRE O VÍDEO
+
+       Quanto maior o número, mais escuro.
+    */
+    --escurecimento-video: 0.48;
 }
 
-html {
-  position: relative;
-  min-height: 100%;
+* {
+    box-sizing: border-box;
 }
 
 body {
-  margin-bottom: 60px;
+    margin: 0;
+    background: var(--fundo-principal);
+    color: var(--texto-principal);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--destaque);
+}
+
+/* ========================================
+   HERO / VÍDEO
+======================================== */
+
+.hero-visao {
+    position: relative;
+    min-height: 82vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #101e2c 0%, #05080d 75%);
+}
+
+.hero-video {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    top: 0;
+    left: 0;
+    /*
+       PARA ALTERAR A TRANSPARÊNCIA DO VÍDEO,
+       MUDE --transparencia-video NO :root.
+    */
+    opacity: var(--transparencia-video);
+    z-index: 1;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient( 90deg, rgba(5, 8, 13, 0.92), rgba(5, 8, 13, var(--escurecimento-video)), rgba(5, 8, 13, 0.90) );
+    z-index: 2;
+}
+
+.hero-conteudo {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    padding-top: 70px;
+    padding-bottom: 70px;
+    max-width: 900px;
+}
+
+.hero-logo {
+    display: block;
+    width: min(290px, 70vw);
+    max-height: 210px;
+    object-fit: contain;
+    margin: 0 auto 25px;
+    filter: drop-shadow(0 0 25px rgba(0, 183, 255, 0.20));
+}
+
+.hero-badge {
+    display: inline-block;
+    padding: 8px 17px;
+    border: 1px solid rgba(0, 183, 255, 0.35);
+    border-radius: 30px;
+    color: var(--destaque-claro);
+    background: rgba(0, 183, 255, 0.08);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+}
+
+.hero-conteudo h1 {
+    margin: 0;
+    font-size: clamp(2.7rem, 7vw, 5.5rem);
+    font-weight: 800;
+    letter-spacing: 5px;
+}
+
+.hero-conteudo h2 {
+    font-size: clamp(1.25rem, 3vw, 2rem);
+    font-weight: 400;
+    margin-top: 12px;
+    color: #d9e2ec;
+}
+
+.hero-descricao {
+    max-width: 750px;
+    margin: 24px auto 30px;
+    color: var(--texto-secundario);
+    font-size: 1.05rem;
+    line-height: 1.8;
+}
+
+.hero-acoes {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.btn-visao-principal,
+.btn-visao-secundario {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 190px;
+    padding: 13px 24px;
+    border-radius: 7px;
+    text-decoration: none;
+    font-weight: 700;
+    transition: 0.25s ease;
+}
+
+.btn-visao-principal {
+    background: var(--destaque);
+    color: #001018;
+    border: 1px solid var(--destaque);
+}
+
+    .btn-visao-principal:hover {
+        background: var(--destaque-claro);
+        color: #001018;
+        transform: translateY(-2px);
+    }
+
+.btn-visao-secundario {
+    background: rgba(255, 255, 255, 0.04);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+}
+
+    .btn-visao-secundario:hover {
+        color: white;
+        border-color: var(--destaque);
+        background: rgba(0, 183, 255, 0.08);
+        transform: translateY(-2px);
+    }
+
+.hero-status {
+    margin-top: 30px;
+    color: #abb7c5;
+    font-size: 0.85rem;
+}
+
+    .hero-status span {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 8px;
+        border-radius: 50%;
+        background: var(--verde);
+        box-shadow: 0 0 10px var(--verde);
+    }
+
+/* ========================================
+   MERCADOS
+======================================== */
+
+.secao-mercados {
+    padding: 90px 0;
+    background: var(--fundo-principal);
+}
+
+.titulo-secao {
+    max-width: 760px;
+    margin: 0 auto 55px;
+    text-align: center;
+}
+
+    .titulo-secao > span,
+    .secao-label {
+        color: var(--destaque);
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        font-weight: 700;
+    }
+
+    .titulo-secao h2,
+    .secao-inteligencia h2 {
+        margin-top: 12px;
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 750;
+    }
+
+    .titulo-secao p,
+    .secao-inteligencia p {
+        color: var(--texto-secundario);
+        line-height: 1.8;
+    }
+
+.mercado-card {
+    height: 100%;
+    padding: 32px;
+    border: 1px solid var(--borda);
+    border-radius: 14px;
+    background: linear-gradient( 145deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01) );
+    transition: 0.3s ease;
+}
+
+    .mercado-card:hover {
+        transform: translateY(-7px);
+        border-color: rgba(0, 183, 255, 0.40);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+    }
+
+.mercado-icone {
+    width: 55px;
+    height: 55px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    margin-bottom: 22px;
+    background: rgba(0, 183, 255, 0.10);
+    border: 1px solid rgba(0, 183, 255, 0.20);
+    color: var(--destaque);
+    font-weight: 800;
+    font-size: 1.2rem;
+}
+
+.mercado-status {
+    display: block;
+    color: var(--texto-secundario);
+    font-size: 0.68rem;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+}
+
+.mercado-card h3 {
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.mercado-card p {
+    color: var(--texto-secundario);
+    line-height: 1.7;
+}
+
+.mercado-card ul {
+    padding-left: 18px;
+    margin-bottom: 0;
+    color: #c5cfda;
+}
+
+.mercado-card li {
+    margin: 8px 0;
+}
+
+/* ========================================
+   INTELIGÊNCIA / EXEMPLO
+======================================== */
+
+.secao-inteligencia {
+    padding: 90px 0;
+    background: var(--fundo-secundario);
+    border-top: 1px solid var(--borda);
+    border-bottom: 1px solid var(--borda);
+}
+
+.painel-analise {
+    padding: 28px;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 183, 255, 0.18);
+    background: #080e15;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.30);
+}
+
+.painel-topo {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding-bottom: 18px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid var(--borda);
+    color: #9caaba;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+}
+
+.online {
+    color: var(--verde);
+}
+
+.analise-linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--borda);
+    color: var(--texto-secundario);
+}
+
+    .analise-linha strong {
+        color: #e6edf5;
+    }
+
+.score-exemplo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 24px 0 18px;
+    padding: 20px;
+    border-radius: 10px;
+    background: rgba(46, 229, 157, 0.06);
+    border: 1px solid rgba(46, 229, 157, 0.16);
+}
+
+    .score-exemplo span {
+        color: var(--verde);
+        font-size: 0.75rem;
+        letter-spacing: 1.5px;
+        font-weight: 700;
+    }
+
+    .score-exemplo strong {
+        color: var(--verde);
+        font-size: 2.1rem;
+    }
+
+.painel-analise small {
+    color: #6f7d8d;
+    line-height: 1.6;
+}
+
+/* ========================================
+   RESPONSIVO
+======================================== */
+
+@media (max-width: 767px) {
+
+    .hero-visao {
+        min-height: 760px;
+    }
+
+    .hero-conteudo {
+        padding-top: 55px;
+        padding-bottom: 55px;
+    }
+
+        .hero-conteudo h1 {
+            letter-spacing: 2px;
+        }
+
+    .hero-logo {
+        width: 220px;
+    }
+
+    .secao-mercados,
+    .secao-inteligencia {
+        padding: 65px 0;
+    }
+}
+
+/* ========================================
+   CABEÇALHO
+======================================== */
+
+.cabecalho-visao {
+    position: relative;
+    z-index: 1000;
+    background: rgba(5, 8, 13, 0.96);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(12px);
+}
+
+    .cabecalho-visao .navbar {
+        min-height: 76px;
+    }
+
+.marca-visao {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: white !important;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+}
+
+    .marca-visao img {
+        width: 45px;
+        height: 45px;
+        object-fit: contain;
+    }
+
+.cabecalho-visao .nav-link {
+    position: relative;
+    margin: 0 7px;
+    padding: 10px 5px !important;
+    color: #b8c3cf !important;
+    font-weight: 500;
+    transition: 0.25s ease;
+}
+
+    .cabecalho-visao .nav-link:hover {
+        color: var(--destaque-claro) !important;
+    }
+
+    .cabecalho-visao .nav-link::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: 2px;
+        width: 0;
+        height: 2px;
+        background: var(--destaque);
+        transition: 0.25s ease;
+        transform: translateX(-50%);
+    }
+
+    .cabecalho-visao .nav-link:hover::after {
+        width: 100%;
+    }
+
+.btn-login-menu,
+.btn-sair {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 95px;
+    padding: 9px 20px;
+    border-radius: 7px;
+    border: 1px solid var(--destaque);
+    background: rgba(0, 183, 255, 0.08);
+    color: var(--destaque-claro);
+    text-decoration: none;
+    font-weight: 700;
+    transition: 0.25s ease;
+}
+
+    .btn-login-menu:hover,
+    .btn-sair:hover {
+        background: var(--destaque);
+        color: #001018;
+    }
+
+.btn-sair {
+    cursor: pointer;
+}
+
+/* ========================================
+   RODAPÉ
+======================================== */
+
+.rodape-visao {
+    padding: 55px 0 30px;
+    text-align: center;
+    background: #030508;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.rodape-logo {
+    width: 85px;
+    height: 70px;
+    object-fit: contain;
+    margin-bottom: 10px;
+    opacity: 0.9;
+}
+
+.rodape-marca {
+    color: white;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 17px;
+}
+
+.rodape-desenvolvido {
+    color: #9ca9b7;
+    margin-bottom: 5px;
+}
+
+    .rodape-desenvolvido strong {
+        color: var(--destaque-claro);
+    }
+
+.rodape-contato {
+    color: #d5dde6;
+    font-weight: 600;
+    margin-bottom: 25px;
+}
+
+.rodape-aviso {
+    max-width: 700px;
+    margin: 0 auto;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    color: #697686;
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+.rodape-copy {
+    margin-top: 18px;
+    color: #53606e;
+    font-size: 0.75rem;
+}
+
+@media (max-width: 991px) {
+
+    .cabecalho-visao .navbar-collapse {
+        padding: 20px 0;
+    }
+
+    .cabecalho-visao .nav-link {
+        margin: 3px 0;
+    }
+
+    .btn-login-menu,
+    .btn-sair {
+        margin-top: 10px;
+    }
+}
+/* ========================================
+   AJUSTE DA LOGO DO RODAPÉ
+======================================== */
+
+.rodape-logo {
+    width: 300px;
+    height: auto;
+    max-width: 80%;
+    object-fit: contain;
+    margin-bottom: 20px;
+    opacity: 1;
+}
+/* ========================================
+   LOGIN - VISÃO DE ÁGUIA
+======================================== */
+
+.login-visao {
+    min-height: calc(100vh - 76px);
+    display: flex;
+    align-items: center;
+    padding: 70px 0;
+    background: radial-gradient( circle at center, rgba(0, 183, 255, 0.08) 0%, rgba(5, 8, 13, 0) 45% ), var(--fundo-principal);
+}
+
+.login-container {
+    width: 100%;
+    max-width: 470px;
+    margin: 0 auto;
+}
+
+.login-card {
+    padding: 42px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 183, 255, 0.22);
+    background: linear-gradient( 145deg, rgba(13, 21, 32, 0.98), rgba(7, 12, 19, 0.98) );
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), 0 0 35px rgba(0, 183, 255, 0.04);
+}
+
+.login-topo {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.login-logo {
+    width: 220px;
+    max-width: 85%;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 22px;
+    filter: drop-shadow( 0 0 18px rgba(0, 183, 255, 0.15) );
+}
+
+.login-topo h1 {
+    margin: 0 0 10px;
+    color: #ffffff;
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.login-topo p {
+    margin: 0;
+    color: var(--texto-secundario);
+    line-height: 1.6;
+}
+
+.login-campo {
+    margin-bottom: 22px;
+}
+
+    .login-campo label {
+        display: block;
+        margin-bottom: 8px;
+        color: #dce5ee;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+.login-input {
+    width: 100%;
+    height: 50px;
+    padding: 0 15px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.035);
+    color: #ffffff;
+    transition: 0.25s ease;
+}
+
+    .login-input::placeholder {
+        color: #657383;
+    }
+
+    .login-input:focus {
+        border-color: var(--destaque);
+        background: rgba(0, 183, 255, 0.035);
+        box-shadow: 0 0 0 3px rgba(0, 183, 255, 0.08);
+    }
+
+.login-opcoes {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 26px;
+    color: var(--texto-secundario);
+}
+
+    .login-opcoes .form-check-label {
+        color: var(--texto-secundario);
+        cursor: pointer;
+    }
+
+    .login-opcoes .form-check-input {
+        background-color: #111a24;
+        border-color: #536170;
+    }
+
+        .login-opcoes .form-check-input:checked {
+            background-color: var(--destaque);
+            border-color: var(--destaque);
+        }
+
+.login-botao {
+    width: 100%;
+    height: 50px;
+    border: 1px solid var(--destaque);
+    border-radius: 8px;
+    background: var(--destaque);
+    color: #001018;
+    font-weight: 800;
+    transition: 0.25s ease;
+}
+
+    .login-botao:hover {
+        background: var(--destaque-claro);
+        border-color: var(--destaque-claro);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0, 183, 255, 0.15);
+    }
+
+.login-cadastro {
+    margin-top: 28px;
+    padding-top: 23px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    text-align: center;
+    color: var(--texto-secundario);
+    font-size: 0.9rem;
+}
+
+    .login-cadastro a {
+        margin-left: 5px;
+        color: var(--destaque-claro);
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+        .login-cadastro a:hover {
+            text-decoration: underline;
+        }
+
+.login-validacao {
+    color: #ff7373;
+    margin-bottom: 18px;
+}
+
+.login-erro {
+    display: block;
+    margin-top: 6px;
+    color: #ff7373;
+    font-size: 0.82rem;
+}
+
+@media (max-width: 576px) {
+
+    .login-visao {
+        padding: 40px 12px;
+    }
+
+    .login-card {
+        padding: 30px 22px;
+    }
+
+    .login-logo {
+        width: 190px;
+    }
+
+    .login-topo h1 {
+        font-size: 1.25rem;
+    }
 }

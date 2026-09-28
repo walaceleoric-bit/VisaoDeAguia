@@ -1,0 +1,430 @@
+﻿@model List<VisaoDeAguia.Models.SinalEnviado>
+
+@{
+    ViewData["Title"] = "Histórico";
+
+    int totalRegistros = ViewBag.TotalRegistros ?? 0;
+    int paginaAtual = ViewBag.PaginaAtual ?? 1;
+    int totalPaginas = ViewBag.TotalPaginas ?? 0;
+
+    string? dataFiltro = ViewBag.DataFiltro;
+    int? mesFiltro = ViewBag.MesFiltro;
+    int? anoFiltro = ViewBag.AnoFiltro;
+
+    DateTime ConverterParaBrasilia(DateTime dataUtc)
+    {
+        try
+        {
+            var fuso = TimeZoneInfo.FindSystemTimeZoneById(
+                "America/Sao_Paulo");
+
+            var utc = dataUtc.Kind == DateTimeKind.Utc
+                ? dataUtc
+                : DateTime.SpecifyKind(dataUtc, DateTimeKind.Utc);
+
+            return TimeZoneInfo.ConvertTimeFromUtc(
+                utc,
+                fuso);
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            try
+            {
+                var fuso = TimeZoneInfo.FindSystemTimeZoneById(
+                    "E. South America Standard Time");
+
+                var utc = dataUtc.Kind == DateTimeKind.Utc
+                    ? dataUtc
+                    : DateTime.SpecifyKind(dataUtc, DateTimeKind.Utc);
+
+                return TimeZoneInfo.ConvertTimeFromUtc(
+                    utc,
+                    fuso);
+            }
+            catch
+            {
+                return dataUtc.ToUniversalTime().AddHours(-3);
+            }
+        }
+    }
+}
+
+<div class="container py-5">
+
+    <div class="mb-4">
+
+        <span class="secao-label">
+            VISÃO DE ÁGUIA
+        </span>
+
+        <h1 class="mt-2">
+            Histórico de Sinais
+        </h1>
+
+        <p class="text-secondary">
+            Consulte os sinais identificados e enviados pelo robô.
+        </p>
+
+    </div>
+
+    @if (ViewBag.Erro != null)
+    {
+        <div class="alert alert-danger">
+            @ViewBag.Erro
+        </div>
+    }
+
+    <!-- FILTROS -->
+    <div class="painel-analise mb-4">
+
+        <div class="painel-topo">
+            <span>CONSULTAR HISTÓRICO</span>
+            <span>FILTROS</span>
+        </div>
+
+        <div class="py-4">
+
+            <form asp-controller="Historico"
+                  asp-action="Index"
+                  method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Dia específico
+                        </label>
+
+                        <input type="date"
+                               name="data"
+                               value="@dataFiltro"
+                               class="form-control" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            Mês
+                        </label>
+
+                        <select name="mes"
+                                class="form-select">
+
+                            <option value="">
+                                Todos
+                            </option>
+
+                            @for (var mes = 1; mes <= 12; mes++)
+                            {
+                                var nomeMes =
+                                    new DateTime(
+                                        2000,
+                                        mes,
+                                        1)
+                                    .ToString(
+                                        "MMMM",
+                                        new System.Globalization.CultureInfo(
+                                            "pt-BR"));
+
+                                if (mesFiltro == mes)
+                                {
+                                    <option value="@mes"
+                                            selected>
+                                        @nomeMes
+                                    </option>
+                                }
+                                else
+                                {
+                                    <option value="@mes">
+                                        @nomeMes
+                                    </option>
+                                }
+                            }
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-2">
+
+                        <label class="form-label">
+                            Ano
+                        </label>
+
+                        <input type="number"
+                               name="ano"
+                               value="@anoFiltro"
+                               min="2020"
+                               max="2100"
+                               class="form-control"
+                               placeholder="2026" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <div class="d-flex gap-2">
+
+                            <button type="submit"
+                                    class="btn-visao-principal border-0">
+                                Buscar
+                            </button>
+
+                            <a asp-controller="Historico"
+                               asp-action="Index"
+                               class="btn-visao-secundario text-decoration-none">
+                                Limpar
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="form-text text-secondary mt-3">
+                    Se selecionar um dia específico, o filtro por mês e ano será ignorado.
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    @if (ViewBag.Erro == null)
+    {
+        @if (Model.Count == 0)
+        {
+            <div class="painel-analise">
+
+                <div class="painel-topo">
+                    <span>HISTÓRICO</span>
+                    <span>NENHUM SINAL</span>
+                </div>
+
+                <div class="text-center py-5">
+
+                    <h3 class="text-secondary">
+                        Nenhum sinal encontrado.
+                    </h3>
+
+                    <p class="text-secondary mb-0">
+                        Não existem sinais para os filtros selecionados.
+                    </p>
+
+                </div>
+
+            </div>
+        }
+        else
+        {
+            var ultimoSinalBrasilia =
+                ConverterParaBrasilia(
+                    Model.First().DataHoraVela);
+
+            <!-- RESUMO -->
+            <div class="painel-analise mb-4">
+
+                <div class="painel-topo">
+                    <span>RESUMO</span>
+                    <span>HISTÓRICO DO ROBÔ</span>
+                </div>
+
+                <div class="analise-linha">
+
+                    <span>Total encontrado</span>
+
+                    <strong>
+                        @totalRegistros
+                    </strong>
+
+                </div>
+
+                <div class="analise-linha">
+
+                    <span>Último sinal</span>
+
+                    <strong>
+                        @ultimoSinalBrasilia.ToString(
+                            "dd/MM/yyyy HH:mm")
+                    </strong>
+
+                </div>
+
+            </div>
+
+            <!-- SINAIS -->
+            @foreach (var sinal in Model)
+            {
+                var classeDirecao =
+                    sinal.Direcao == "COMPRAR"
+                        ? "text-success"
+                        : sinal.Direcao == "VENDER"
+                            ? "text-danger"
+                            : "text-warning";
+
+                var classeForca =
+                    sinal.Forca == "FORTE"
+                        ? "text-success"
+                        : sinal.Forca == "MODERADO"
+                            ? "text-warning"
+                            : "text-secondary";
+
+                var sinalTeste =
+                    sinal.Simbolo.Contains(
+                        "TESTE",
+                        StringComparison.OrdinalIgnoreCase);
+
+                var horarioBrasilia =
+                    ConverterParaBrasilia(
+                        sinal.DataHoraVela);
+
+                <div class="painel-analise mb-4">
+
+                    <div class="painel-topo">
+
+                        <span>
+                            @sinal.Simbolo
+                        </span>
+
+                        @if (sinalTeste)
+                        {
+                            <span class="text-warning">
+                                🧪 TESTE
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="@classeDirecao">
+                                @sinal.Direcao
+                            </span>
+                        }
+
+                    </div>
+
+                    <div class="analise-linha">
+
+                        <span>Direção</span>
+
+                        <strong class="@classeDirecao">
+                            @sinal.Direcao
+                        </strong>
+
+                    </div>
+
+                    <div class="analise-linha">
+
+                        <span>Força</span>
+
+                        <strong class="@classeForca">
+                            @sinal.Forca
+                        </strong>
+
+                    </div>
+
+                    <div class="analise-linha">
+
+                        <span>Pontuação</span>
+
+                        <strong>
+                            @sinal.Pontuacao/100
+                        </strong>
+
+                    </div>
+
+                    <div class="analise-linha">
+
+                        <span>Preço</span>
+
+                        <strong>
+                            @if (sinalTeste)
+                            {
+                                <span>TESTE</span>
+                            }
+                            else
+                            {
+                                @sinal.Preco.ToString("0.########")
+                            }
+                        </strong>
+
+                    </div>
+
+                    <div class="analise-linha">
+
+                        <span>Horário da vela</span>
+
+                        <strong>
+                            @horarioBrasilia.ToString(
+                                "dd/MM/yyyy HH:mm")
+                        </strong>
+
+                    </div>
+
+                    <div class="analise-linha">
+
+                        <span>Enviado ao Telegram</span>
+
+                        <strong class="text-success">
+                            ✓ SIM
+                        </strong>
+
+                    </div>
+
+                </div>
+            }
+
+            <!-- PAGINAÇÃO -->
+            @if (totalPaginas > 1)
+            {
+                <div class="painel-analise mb-4">
+
+                    <div class="d-flex flex-wrap
+                        justify-content-between
+                        align-items-center
+                        gap-3 py-3">
+
+                        <span class="text-secondary">
+                            Página @paginaAtual de @totalPaginas
+                        </span>
+
+                        <div class="d-flex gap-2">
+
+                            @if (paginaAtual > 1)
+                            {
+                                <a asp-controller="Historico"
+                                   asp-action="Index"
+                                   asp-route-pagina="@(paginaAtual - 1)"
+                                   asp-route-data="@dataFiltro"
+                                   asp-route-mes="@mesFiltro"
+                                   asp-route-ano="@anoFiltro"
+                                   class="btn-visao-secundario text-decoration-none">
+                                    ← Anterior
+                                </a>
+                            }
+
+                            @if (paginaAtual < totalPaginas)
+                            {
+                                <a asp-controller="Historico"
+                                   asp-action="Index"
+                                   asp-route-pagina="@(paginaAtual + 1)"
+                                   asp-route-data="@dataFiltro"
+                                   asp-route-mes="@mesFiltro"
+                                   asp-route-ano="@anoFiltro"
+                                   class="btn-visao-principal text-decoration-none">
+                                    Próxima →
+                                </a>
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+        }
+    }
+
+</div>

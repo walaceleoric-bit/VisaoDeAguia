@@ -1,8 +1,291 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Início";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="hero-visao">
+
+    <video class="hero-video"
+           autoplay
+           muted
+           loop
+           playsinline>
+        <source src="~/videos/fundotec.mp4" type="video/mp4" />
+    </video>
+
+    <div class="hero-overlay"></div>
+
+    <div class="container hero-conteudo">
+
+        <img src="~/images/logo-wlc.png"
+             asp-append-version="true"
+             alt="Visão de Águia"
+             class="hero-logo" />
+
+        <div class="hero-badge">
+            ASSISTENTE INTELIGENTE DE MERCADO
+        </div>
+
+        <h2>
+            Enxergue oportunidades antes de tomar sua decisão.
+        </h2>
+
+        <p class="hero-descricao">
+            Tecnologia desenvolvida para acompanhar Forex, Ações e
+            Criptomoedas, analisando diferentes períodos gráficos em busca
+            de tendências, regiões importantes e possíveis pullbacks.
+        </p>
+
+        <div class="hero-acoes">
+
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a asp-controller="Analise"
+                   asp-action="Index"
+                   class="btn-visao-principal">
+                    Analisar Mercado
+                </a>
+
+                <a asp-controller="Configuracao"
+                   asp-action="Index"
+                   class="btn-visao-secundario">
+                    Configurar Robô
+                </a>
+            }
+            else
+            {
+                <a asp-controller="Conta"
+                   asp-action="Login"
+                   class="btn-visao-principal">
+                    Entrar no Sistema
+                </a>
+
+                <a asp-controller="Conta"
+                   asp-action="Cadastro"
+                   class="btn-visao-secundario">
+                    Criar Conta
+                </a>
+            }
+
+        </div>
+
+        <div class="hero-status">
+            <span></span>
+            Monitoramento inteligente de múltiplos mercados
+        </div>
+
+    </div>
+
+</section>
+
+<section class="secao-mercados">
+
+    <div class="container">
+
+        <div class="titulo-secao">
+
+            <span>ANÁLISE MULTIMERCADO</span>
+
+            <h2>
+                Um sistema preparado para diferentes mercados
+            </h2>
+
+            <p>
+                O Visão de Águia organiza informações de mercado para
+                ajudar você a identificar cenários que merecem atenção.
+            </p>
+
+        </div>
+
+        <div class="row g-4">
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="mercado-card">
+
+                    <div class="mercado-icone">
+                        FX
+                    </div>
+
+                    <span class="mercado-status">
+                        MERCADO DE MOEDAS
+                    </span>
+
+                    <h3>Forex</h3>
+
+                    <p>
+                        Acompanhamento de pares como EUR/USD, GBP/USD
+                        e USD/JPY utilizando análise em múltiplos
+                        períodos gráficos.
+                    </p>
+
+                    <ul>
+                        <li>Análise de tendência</li>
+                        <li>Suporte e resistência</li>
+                        <li>Identificação de pullbacks</li>
+                        <li>Análise do M5 ao H2</li>
+                    </ul>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="mercado-card">
+
+                    <div class="mercado-icone">
+                        ST
+                    </div>
+
+                    <span class="mercado-status">
+                        MERCADO DE AÇÕES
+                    </span>
+
+                    <h3>Ações</h3>
+
+                    <p>
+                        Analise o comportamento de ações e encontre
+                        regiões de preço que podem apresentar cenários
+                        interessantes para acompanhamento.
+                    </p>
+
+                    <ul>
+                        <li>Estrutura do preço</li>
+                        <li>Tendência do ativo</li>
+                        <li>Regiões relevantes</li>
+                        <li>Confirmações técnicas</li>
+                    </ul>
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+
+                <div class="mercado-card">
+
+                    <div class="mercado-icone">
+                        ₿
+                    </div>
+
+                    <span class="mercado-status">
+                        MERCADO 24/7
+                    </span>
+
+                    <h3>Criptomoedas</h3>
+
+                    <p>
+                        Monitoramento de ativos digitais como Bitcoin
+                        e Ethereum em um mercado que permanece ativo
+                        todos os dias.
+                    </p>
+
+                    <ul>
+                        <li>Monitoramento contínuo</li>
+                        <li>Análise multi-timeframe</li>
+                        <li>Detecção de pullbacks</li>
+                        <li>Classificação dos cenários</li>
+                    </ul>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<section class="secao-inteligencia">
+
+    <div class="container">
+
+        <div class="row align-items-center g-5">
+
+            <div class="col-lg-6">
+
+                <span class="secao-label">
+                    COMO FUNCIONA
+                </span>
+
+                <h2>
+                    O mercado se movimenta.<br />
+                    O Visão de Águia observa.
+                </h2>
+
+                <p>
+                    O sistema foi projetado para analisar diferentes
+                    períodos gráficos e reunir confirmações antes de
+                    destacar um possível cenário.
+                </p>
+
+                <p>
+                    Tendência, estrutura, suporte, resistência,
+                    volatilidade e comportamento das velas poderão
+                    trabalhar juntos para formar a classificação
+                    da análise.
+                </p>
+
+            </div>
+
+            <div class="col-lg-6">
+
+                <div class="painel-analise">
+
+                    <div class="painel-topo">
+                        <span>EXEMPLO DE MONITORAMENTO</span>
+                        <span class="online">
+                            ● ONLINE
+                        </span>
+                    </div>
+
+                    <div class="analise-linha">
+                        <span>Tendência 2H</span>
+                        <strong>Confirmada</strong>
+                    </div>
+
+                    <div class="analise-linha">
+                        <span>Estrutura 1H</span>
+                        <strong>Favorável</strong>
+                    </div>
+
+                    <div class="analise-linha">
+                        <span>Região 30M</span>
+                        <strong>Próxima</strong>
+                    </div>
+
+                    <div class="analise-linha">
+                        <span>Pullback 15M</span>
+                        <strong>Monitorando</strong>
+                    </div>
+
+                    <div class="analise-linha">
+                        <span>Entrada 5M</span>
+                        <strong>Aguardando</strong>
+                    </div>
+
+                    <div class="score-exemplo">
+
+                        <span>FORÇA DO CENÁRIO</span>
+
+                        <div>
+                            <strong>82</strong>/100
+                        </div>
+
+                    </div>
+
+                    <small>
+                        Demonstração visual. Não representa recomendação
+                        de investimento ou garantia de resultado.
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>

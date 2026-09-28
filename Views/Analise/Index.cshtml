@@ -1,0 +1,393 @@
+﻿@model VisaoDeAguia.Models.ResultadoAnalise
+
+@{
+    ViewData["Title"] = "Analisar";
+
+    var classeDirecao = Model.Direcao switch
+    {
+        "COMPRAR" => "text-success",
+        "VENDER" => "text-danger",
+        _ => "text-warning"
+    };
+
+    var classeForca = Model.Forca switch
+    {
+        "FORTE" => "text-success",
+        "MODERADO" => "text-warning",
+        _ => "text-secondary"
+    };
+
+    string FormatarPreco(decimal valor)
+    {
+        return valor.ToString("0.########");
+    }
+}
+
+<div class="container py-5">
+
+    <div class="mb-4">
+
+        <span class="secao-label">
+            ANÁLISE INTELIGENTE
+        </span>
+
+        <h1 class="mt-2">
+            Analisar Mercado
+        </h1>
+
+        <p class="text-secondary">
+            Análise multi-timeframe utilizando 2H, 1H, 30M, 15M e 5M.
+        </p>
+
+    </div>
+
+    @if (ViewBag.Erro != null)
+    {
+        <div class="alert alert-danger">
+            <strong>Erro ao analisar mercado:</strong>
+            @ViewBag.Erro
+        </div>
+    }
+    else
+    {
+        <!-- RESULTADO PRINCIPAL -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+
+                <span>
+                    @Model.Simbolo
+                </span>
+
+                <span class="online">
+                    ● ANÁLISE CONCLUÍDA
+                </span>
+
+            </div>
+
+            <div class="text-center py-4">
+
+                <div class="text-secondary mb-2">
+                    RESULTADO DA ANÁLISE
+                </div>
+
+                <h2 class="@classeDirecao fw-bold display-5">
+                    @Model.Direcao
+                </h2>
+
+                <div class="mt-3">
+
+                    <span class="text-secondary">
+                        FORÇA DO CENÁRIO
+                    </span>
+
+                    <h3 class="@classeForca fw-bold mt-1">
+                        @Model.Forca
+                    </h3>
+
+                </div>
+
+            </div>
+
+            <div class="score-exemplo">
+
+                <span>
+                    PONTUAÇÃO
+                </span>
+
+                <div>
+                    <strong>@Model.Pontuacao</strong>/100
+                </div>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>Preço atual</span>
+
+                <strong>
+                    @FormatarPreco(Model.PrecoAtual)
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>Horário da última vela</span>
+
+                <strong>
+                    @Model.DataHora.ToString("dd/MM/yyyy HH:mm")
+                </strong>
+
+            </div>
+
+        </div>
+
+        <!-- MULTI-TIMEFRAME -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+
+                <span>
+                    ANÁLISE MULTI-TIMEFRAME
+                </span>
+
+                <span>
+                    2H → 1H → 30M → 15M → 5M
+                </span>
+
+            </div>
+
+            <div class="analise-linha">
+                <span>Tendência 2H</span>
+                <strong>@Model.Tendencia2H</strong>
+            </div>
+
+            <div class="analise-linha">
+                <span>Tendência 1H</span>
+                <strong>@Model.Tendencia1H</strong>
+            </div>
+
+            <div class="analise-linha">
+                <span>Estrutura 30M</span>
+                <strong>@Model.Estrutura30M</strong>
+            </div>
+
+            <div class="analise-linha">
+                <span>Pullback 15M</span>
+                <strong>@Model.Pullback15M</strong>
+            </div>
+
+            <div class="analise-linha">
+                <span>Confirmação 5M</span>
+                <strong>@Model.Confirmacao5M</strong>
+            </div>
+
+            <div class="analise-linha">
+
+                <span>
+                    Alinhamento das tendências
+                </span>
+
+                <strong class="@(Model.TendenciasAlinhadas ? "text-success" : "text-warning")">
+                    @(Model.TendenciasAlinhadas ? "ALINHADAS" : "NÃO ALINHADAS")
+                </strong>
+
+            </div>
+
+        </div>
+
+        <!-- MÉDIAS MÓVEIS -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+
+                <span>
+                    MÉDIAS MÓVEIS
+                </span>
+
+                <span>
+                    EMA 10 / EMA 20
+                </span>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>2H</span>
+
+                <strong>
+                    EMA 10: @FormatarPreco(Model.Ema10_2H)
+                    |
+                    EMA 20: @FormatarPreco(Model.Ema20_2H)
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>1H</span>
+
+                <strong>
+                    EMA 10: @FormatarPreco(Model.Ema10_1H)
+                    |
+                    EMA 20: @FormatarPreco(Model.Ema20_1H)
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>30M</span>
+
+                <strong>
+                    EMA 10: @FormatarPreco(Model.Ema10_30M)
+                    |
+                    EMA 20: @FormatarPreco(Model.Ema20_30M)
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>15M</span>
+
+                <strong>
+                    EMA 10: @FormatarPreco(Model.Ema10_15M)
+                    |
+                    EMA 20: @FormatarPreco(Model.Ema20_15M)
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>5M</span>
+
+                <strong>
+                    EMA 10: @FormatarPreco(Model.Ema10_5M)
+                    |
+                    EMA 20: @FormatarPreco(Model.Ema20_5M)
+                </strong>
+
+            </div>
+
+        </div>
+
+        <!-- SUPORTE E RESISTÊNCIA -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+
+                <span>
+                    REGIÕES IMPORTANTES
+                </span>
+
+                <span>
+                    SUPORTE / RESISTÊNCIA
+                </span>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>Suporte</span>
+
+                <strong>
+                    @FormatarPreco(Model.Suporte)
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>Resistência</span>
+
+                <strong>
+                    @FormatarPreco(Model.Resistencia)
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>Preço próximo do suporte</span>
+
+                <strong class="@(Model.ProximoSuporte ? "text-success" : "text-secondary")">
+                    @(Model.ProximoSuporte ? "SIM" : "NÃO")
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>Preço próximo da resistência</span>
+
+                <strong class="@(Model.ProximoResistencia ? "text-success" : "text-secondary")">
+                    @(Model.ProximoResistencia ? "SIM" : "NÃO")
+                </strong>
+
+            </div>
+
+        </div>
+
+        <!-- CONFIRMAÇÕES -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+
+                <span>
+                    CONFIRMAÇÕES DE ENTRADA
+                </span>
+
+                <span>
+                    15M / 5M
+                </span>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>Pullback confirmado</span>
+
+                <strong class="@(Model.PullbackConfirmado ? "text-success" : "text-warning")">
+                    @(Model.PullbackConfirmado ? "SIM" : "NÃO")
+                </strong>
+
+            </div>
+
+            <div class="analise-linha">
+
+                <span>Gatilho 5M confirmado</span>
+
+                <strong class="@(Model.GatilhoConfirmado ? "text-success" : "text-warning")">
+                    @(Model.GatilhoConfirmado ? "SIM" : "NÃO")
+                </strong>
+
+            </div>
+
+        </div>
+
+        <!-- CRITÉRIOS -->
+        <div class="painel-analise">
+
+            <div class="painel-topo">
+
+                <span>
+                    CRITÉRIOS ANALISADOS
+                </span>
+
+                <span>
+                    VISÃO DE ÁGUIA
+                </span>
+
+            </div>
+
+            @foreach (var motivo in Model.Motivos)
+            {
+                <div class="analise-linha">
+
+                    <span>
+                        @motivo
+                    </span>
+
+                    <strong>
+                        ✓
+                    </strong>
+
+                </div>
+            }
+
+            <div class="mt-4">
+
+                <small class="text-secondary">
+                    Esta análise é uma ferramenta de apoio e não representa
+                    garantia de resultado ou recomendação de investimento.
+                </small>
+
+            </div>
+
+        </div>
+    }
+
+</div>

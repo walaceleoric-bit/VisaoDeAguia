@@ -1,0 +1,130 @@
+﻿@model VisaoDeAguia.ViewModels.CadastroViewModel
+
+@{
+    ViewData["Title"] = "Criar conta";
+}
+
+<section class="login-visao">
+
+    <div class="container">
+
+        <div class="login-container">
+
+            <div class="login-card">
+
+                <div class="login-topo">
+
+                    <img src="~/images/logo-wlc.png"
+                         alt="Visão de Águia"
+                         class="login-logo" />
+
+                    <h1>CRIAR CONTA</h1>
+
+                    <p>
+                        Cadastre-se para acessar o Visão de Águia.
+                    </p>
+
+                </div>
+
+                <form asp-controller="Conta"
+                      asp-action="Cadastro"
+                      method="post">
+
+                    <div asp-validation-summary="ModelOnly"
+                         class="login-validacao"></div>
+
+                    <div class="login-campo">
+
+                        <label asp-for="Nome">
+                            Nome
+                        </label>
+
+                        <input asp-for="Nome"
+                               class="login-input"
+                               autocomplete="name"
+                               placeholder="Digite seu nome" />
+
+                        <span asp-validation-for="Nome"
+                              class="login-erro"></span>
+
+                    </div>
+
+                    <div class="login-campo">
+
+                        <label asp-for="Email">
+                            E-mail
+                        </label>
+
+                        <input asp-for="Email"
+                               class="login-input"
+                               autocomplete="email"
+                               placeholder="Digite seu e-mail" />
+
+                        <span asp-validation-for="Email"
+                              class="login-erro"></span>
+
+                    </div>
+
+                    <div class="login-campo">
+
+                        <label asp-for="Senha">
+                            Senha
+                        </label>
+
+                        <input asp-for="Senha"
+                               class="login-input"
+                               autocomplete="new-password"
+                               placeholder="Crie uma senha" />
+
+                        <span asp-validation-for="Senha"
+                              class="login-erro"></span>
+
+                    </div>
+
+                    <div class="login-campo">
+
+                        <label asp-for="ConfirmarSenha">
+                            Confirmar senha
+                        </label>
+
+                        <input asp-for="ConfirmarSenha"
+                               class="login-input"
+                               autocomplete="new-password"
+                               placeholder="Digite novamente sua senha" />
+
+                        <span asp-validation-for="ConfirmarSenha"
+                              class="login-erro"></span>
+
+                    </div>
+
+                    <button type="submit"
+                            class="login-botao">
+                        Criar conta
+                    </button>
+
+                </form>
+
+                <div class="login-cadastro">
+
+                    <span>
+                        Já possui uma conta?
+                    </span>
+
+                    <a asp-controller="Conta"
+                       asp-action="Login">
+                        Entrar
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

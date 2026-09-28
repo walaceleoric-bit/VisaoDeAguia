@@ -1,0 +1,303 @@
+﻿@model VisaoDeAguia.Models.ConfiguracaoRobo
+
+@{
+    ViewData["Title"] = "Configuração";
+}
+
+<div class="container py-5">
+
+    <div class="mb-5">
+
+        <span class="secao-label">
+            VISÃO DE ÁGUIA
+        </span>
+
+        <h1 class="mt-2">
+            Configuração do Robô
+        </h1>
+
+        <p class="text-secondary">
+            Configure o recebimento e a qualidade dos sinais
+            analisados pelo sistema.
+        </p>
+
+    </div>
+
+    @if (TempData["Sucesso"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Sucesso"]
+        </div>
+    }
+
+    @if (TempData["ErroTelegram"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErroTelegram"]
+        </div>
+    }
+
+    <form asp-controller="Configuracao"
+          asp-action="Index"
+          method="post">
+
+        <div asp-validation-summary="ModelOnly"
+             class="alert alert-danger">
+        </div>
+
+        <!-- Mantemos esses campos para compatibilidade
+             com a configuração atual do sistema. -->
+        <input type="hidden"
+               asp-for="AnalisarForex"
+               value="true" />
+
+        <input type="hidden"
+               asp-for="AnalisarAcoes"
+               value="false" />
+
+        <input type="hidden"
+               asp-for="AnalisarCriptomoedas"
+               value="false" />
+
+        <!-- TELEGRAM -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+                <span>TELEGRAM</span>
+                <span>NOTIFICAÇÕES DE SINAIS</span>
+            </div>
+
+            <div class="mb-4 mt-4">
+
+                <div class="form-check form-switch">
+
+                    <input asp-for="TelegramAtivo"
+                           class="form-check-input" />
+
+                    <label asp-for="TelegramAtivo"
+                           class="form-check-label">
+                        Ativar envio de sinais pelo Telegram
+                    </label>
+
+                </div>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="TelegramBotToken"
+                       class="form-label">
+                    Token do Bot
+                </label>
+
+                <input asp-for="TelegramBotToken"
+                       type="password"
+                       class="form-control"
+                       autocomplete="off"
+                       placeholder="Informe o token fornecido pelo BotFather" />
+
+                <div class="form-text text-secondary">
+                    O token identifica o bot que enviará as mensagens.
+                </div>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label asp-for="TelegramChatId"
+                       class="form-label">
+                    Chat ID / Grupo
+                </label>
+
+                <input asp-for="TelegramChatId"
+                       class="form-control"
+                       autocomplete="off"
+                       placeholder="O sistema pode localizar automaticamente" />
+
+                <div class="form-text text-secondary">
+                    Define para qual grupo os sinais serão enviados.
+                </div>
+
+            </div>
+
+            <div class="mt-4 d-flex flex-wrap gap-3">
+
+                <button type="submit"
+                        form="formBuscarGrupo"
+                        class="btn-visao-secundario">
+                    Buscar Grupo do Telegram
+                </button>
+
+                <button type="submit"
+                        form="formTestarTelegram"
+                        class="btn-visao-principal border-0">
+                    Enviar Mensagem de Teste
+                </button>
+
+            </div>
+
+            <div class="form-text text-secondary mt-3">
+                Primeiro salve o Token do Bot. Depois adicione o bot
+                ao grupo, envie uma mensagem no grupo e use
+                "Buscar Grupo do Telegram".
+            </div>
+
+        </div>
+
+        <!-- ATIVO MONITORADO -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+                <span>ATIVO MONITORADO</span>
+                <span>FOREX</span>
+            </div>
+
+            <div class="row g-4 mt-1">
+
+                <div class="col-md-6">
+
+                    <span class="secao-label">
+                        PAR DE MOEDAS
+                    </span>
+
+                    <h3 class="mt-2 mb-1">
+                        EUR/USD
+                    </h3>
+
+                    <p class="text-secondary mb-0">
+                        Euro / Dólar Americano
+                    </p>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <span class="secao-label">
+                        ESTRATÉGIA
+                    </span>
+
+                    <h3 class="mt-2 mb-1">
+                        Multi-Timeframe
+                    </h3>
+
+                    <p class="text-secondary mb-0">
+                        2H → 1H → 30M → 15M → 5M
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="form-text text-secondary mt-4">
+                O robô está configurado para monitorar exclusivamente
+                o EUR/USD e buscar oportunidades seguindo tendência,
+                pullback e confirmação de entrada.
+            </div>
+
+        </div>
+
+        <!-- QUALIDADE DOS SINAIS -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+                <span>QUALIDADE DOS SINAIS</span>
+                <span>FILTROS DO ROBÔ</span>
+            </div>
+
+            <div class="row g-4 mt-1">
+
+                <div class="col-md-6">
+
+                    <div class="form-check form-switch mb-3">
+
+                        <input asp-for="ReceberSinalForte"
+                               class="form-check-input" />
+
+                        <label asp-for="ReceberSinalForte"
+                               class="form-check-label">
+                            Receber sinais fortes
+                        </label>
+
+                    </div>
+
+                    <div class="form-check form-switch">
+
+                        <input asp-for="ReceberSinalModerado"
+                               class="form-check-input" />
+
+                        <label asp-for="ReceberSinalModerado"
+                               class="form-check-label">
+                            Receber sinais moderados
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <label asp-for="PontuacaoMinima"
+                           class="form-label">
+                        Pontuação mínima do cenário
+                    </label>
+
+                    <div class="input-group">
+
+                        <input asp-for="PontuacaoMinima"
+                               type="number"
+                               min="0"
+                               max="100"
+                               class="form-control" />
+
+                        <span class="input-group-text">
+                            / 100
+                        </span>
+
+                    </div>
+
+                    <span asp-validation-for="PontuacaoMinima"
+                          class="text-danger">
+                    </span>
+
+                    <div class="form-text text-secondary">
+                        Quanto maior a pontuação,
+                        mais seletivo será o filtro.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- SALVAR -->
+        <div class="d-flex justify-content-end">
+
+            <button type="submit"
+                    class="btn-visao-principal border-0">
+                Salvar Configurações
+            </button>
+
+        </div>
+
+    </form>
+
+    <!-- BUSCAR GRUPO -->
+    <form id="formBuscarGrupo"
+          asp-controller="Configuracao"
+          asp-action="BuscarGrupo"
+          method="post">
+    </form>
+
+    <!-- TESTAR TELEGRAM -->
+    <form id="formTestarTelegram"
+          asp-controller="Configuracao"
+          asp-action="TestarTelegram"
+          method="post">
+    </form>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
