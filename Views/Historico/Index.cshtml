@@ -90,7 +90,8 @@
 
                 <div class="row g-3 align-items-end">
 
-                    <div class="col-md-4">
+                    <!-- DIA -->
+                    <div class="col-lg-4 col-md-6">
 
                         <label class="form-label">
                             Dia específico
@@ -103,7 +104,8 @@
 
                     </div>
 
-                    <div class="col-md-3">
+                    <!-- MÊS -->
+                    <div class="col-lg-3 col-md-6">
 
                         <label class="form-label">
                             Mês
@@ -147,7 +149,8 @@
 
                     </div>
 
-                    <div class="col-md-2">
+                    <!-- ANO -->
+                    <div class="col-lg-2 col-md-4">
 
                         <label class="form-label">
                             Ano
@@ -163,24 +166,26 @@
 
                     </div>
 
-                    <div class="col-md-3">
+                    <!-- BUSCAR -->
+                    <div class="col-lg-3 col-md-8">
 
-                        <div class="d-flex gap-2">
-
-                            <button type="submit"
-                                    class="btn-visao-principal border-0">
-                                Buscar
-                            </button>
-
-                            <a asp-controller="Historico"
-                               asp-action="Index"
-                               class="btn-visao-secundario text-decoration-none">
-                                Limpar
-                            </a>
-
-                        </div>
+                        <button type="submit"
+                                class="btn-visao-principal border-0 w-100">
+                            Buscar
+                        </button>
 
                     </div>
+
+                </div>
+
+                <!-- LIMPAR -->
+                <div class="d-flex justify-content-end mt-3">
+
+                    <a asp-controller="Historico"
+                       asp-action="Index"
+                       class="btn-visao-secundario text-decoration-none">
+                        Limpar filtros
+                    </a>
 
                 </div>
 
