@@ -669,75 +669,82 @@ namespace VisaoDeAguia.Services
             var horarioVela =
                 resultado.DataHora;
 
-            // A análise acontece logo após o fechamento da vela M5.
-            // A próxima vela é usada somente como referência de tempo
-            // para o usuário saber se o sinal ainda está recente.
             var inicioReferencia =
                 horarioVela.AddMinutes(5);
 
             var fimReferencia =
                 inicioReferencia.AddMinutes(5);
 
-            var agora =
-                DateTime.Now;
+            var direcaoCompra =
+                string.Equals(
+                    resultado.Direcao,
+                    "COMPRAR",
+                    StringComparison.OrdinalIgnoreCase);
 
-            var idadeSinal =
-                agora - inicioReferencia;
+            var distanciaSuporte =
+                Math.Abs(
+                    resultado.PrecoAtual -
+                    resultado.Suporte);
 
-            string situacaoTemporal;
+            var distanciaResistencia =
+                Math.Abs(
+                    resultado.Resistencia -
+                    resultado.PrecoAtual);
 
-            if (idadeSinal <= TimeSpan.FromMinutes(1))
-            {
-                situacaoTemporal =
-                    "🟢 RECÉM-CONFIRMADO";
-            }
-            else if (idadeSinal <= TimeSpan.FromMinutes(2))
-            {
-                situacaoTemporal =
-                    "🟢 SINAL RECENTE";
-            }
-            else if (idadeSinal < TimeSpan.FromMinutes(5))
-            {
-                situacaoTemporal =
-                    "🟡 ATENÇÃO AO ATRASO";
-            }
-            else
-            {
-                situacaoTemporal =
-                    "🔴 SINAL ANTIGO";
-            }
+            var distanciaNivelContrario =
+                direcaoCompra
+                    ? distanciaResistencia
+                    : distanciaSuporte;
+
+            var limiteNivelProximo =
+                resultado.PrecoAtual * 0.001m;
+
+            var nivelProximo =
+                distanciaNivelContrario <=
+                limiteNivelProximo;
+
+            var leituraRegiao =
+                nivelProximo
+                    ? direcaoCompra
+                        ? "🟡 Resistência próxima"
+                        : "🟡 Suporte próximo"
+                    : "🟢 Espaço até o nível contrário";
+
+            var classificacao =
+                nivelProximo
+                    ? "🟡 ATENÇÃO"
+                    : resultado.Pontuacao >= 85
+                        ? "🟢 FAVORÁVEL"
+                        : "🟡 ATENÇÃO";
+
+            var emojiDirecao =
+                direcaoCompra
+                    ? "🟢"
+                    : "🔴";
 
             return
                 "🦅 VISÃO DE ÁGUIA\n\n" +
-                $"🚨 SINAL {resultado.Simbolo}\n\n" +
-                $"📊 Direção: {resultado.Direcao}\n" +
-                $"⭐ Força: {resultado.Forca}\n" +
-                $"🎯 Pontuação: {resultado.Pontuacao}/100\n" +
-                $"💰 Preço: {resultado.PrecoAtual:0.########}\n\n" +
+                $"{emojiDirecao} {resultado.Simbolo} • {resultado.Direcao}\n" +
+                $"⭐ {resultado.Forca} • {resultado.Pontuacao}/100\n" +
+                $"💰 {resultado.PrecoAtual:0.########}\n\n" +
 
-                $"📈 Tendência 2H: {resultado.Tendencia2H}\n" +
-                $"📈 Tendência 1H: {resultado.Tendencia1H}\n" +
-                $"📊 Estrutura 30M: {resultado.Estrutura30M}\n" +
-                $"🔄 Pullback 15M: {resultado.Pullback15M}\n" +
-                $"⚡ Confirmação 5M: {resultado.Confirmacao5M}\n\n" +
+                "📊 CONTEXTO\n" +
+                $"📈 2H: {resultado.Tendencia2H}\n" +
+                $"📈 1H: {resultado.Tendencia1H}\n" +
+                $"📊 30M: {resultado.Estrutura30M}\n" +
+                $"🔄 15M: {resultado.Pullback15M}\n" +
+                $"⚡ 5M: {resultado.Confirmacao5M}\n\n" +
 
+                "🎯 NÍVEIS\n" +
                 $"🛡️ Suporte: {resultado.Suporte:0.########}\n" +
-                $"🚧 Resistência: {resultado.Resistencia:0.########}\n\n" +
+                $"🚧 Resistência: {resultado.Resistencia:0.########}\n" +
+                $"{leituraRegiao}\n\n" +
 
-                "⏱️ TEMPO DO SINAL\n" +
-                $"🕐 Vela M5 analisada: {horarioVela:dd/MM/yyyy HH:mm}\n" +
-                $"📍 Referência seguinte: {inicioReferencia:HH:mm}\n" +
-                $"⌛ Janela de acompanhamento: {inicioReferencia:HH:mm} até {fimReferencia:HH:mm}\n" +
-                $"{situacaoTemporal}\n\n" +
+                "⏱️ TIMING\n" +
+                $"🕐 M5: {horarioVela:HH:mm}\n" +
+                $"⏳ Referência: {inicioReferencia:HH:mm} - {fimReferencia:HH:mm}\n\n" +
 
-                "📌 LEITURA OPERACIONAL\n" +
-                "• M5: use a confirmação como contexto e evite perseguir um movimento que já se afastou do preço do sinal.\n" +
-                "• M1: pode ser usado para observar um novo pullback e confirmação na mesma direção do cenário maior.\n" +
-                "• Se o preço perder a estrutura que sustentou o sinal, considere a leitura invalidada.\n" +
-                "• Quanto maior o atraso no recebimento, menor a utilidade do preço original como referência.\n\n" +
-
-                "⚠️ Sinal gerado automaticamente pelo Visão de Águia.\n" +
-                "📚 Informação técnica; não representa garantia de resultado.";
+                $"🎯 {classificacao}";
         }
     }
 }
