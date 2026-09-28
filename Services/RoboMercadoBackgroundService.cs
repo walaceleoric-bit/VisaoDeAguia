@@ -540,6 +540,12 @@ namespace VisaoDeAguia.Services
                 return;
             }
 
+            // Converte o horário da vela para UTC uma única vez.
+            // Esse mesmo valor é usado na consulta e na gravação.
+            var dataHoraVelaUtc =
+                ConverterHorarioLocalParaUtc(
+                    resultado.DataHora);
+
             var sinalJaEnviado =
                 await context.SinaisEnviados
                     .AsNoTracking()
@@ -552,7 +558,7 @@ namespace VisaoDeAguia.Services
                             s.Direcao ==
                                 resultado.Direcao &&
                             s.DataHoraVela ==
-                                resultado.DataHora,
+                                dataHoraVelaUtc,
                         cancellationToken);
 
             if (sinalJaEnviado)
@@ -607,12 +613,8 @@ namespace VisaoDeAguia.Services
                     Preco =
                         resultado.PrecoAtual,
 
-                    // A Twelve Data devolve a vela no horário de Brasília
-                    // com DateTimeKind.Unspecified. PostgreSQL timestamptz
-                    // exige UTC, então convertemos somente ao persistir.
                     DataHoraVela =
-                        ConverterHorarioLocalParaUtc(
-                            resultado.DataHora),
+                        dataHoraVelaUtc,
 
                     DataEnvio =
                         DateTime.UtcNow
