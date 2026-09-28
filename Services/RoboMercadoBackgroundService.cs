@@ -666,6 +666,47 @@ namespace VisaoDeAguia.Services
             MontarMensagemTelegram(
                 ResultadoAnalise resultado)
         {
+            var horarioVela =
+                resultado.DataHora;
+
+            // A análise acontece logo após o fechamento da vela M5.
+            // A próxima vela é usada somente como referência de tempo
+            // para o usuário saber se o sinal ainda está recente.
+            var inicioReferencia =
+                horarioVela.AddMinutes(5);
+
+            var fimReferencia =
+                inicioReferencia.AddMinutes(5);
+
+            var agora =
+                DateTime.Now;
+
+            var idadeSinal =
+                agora - inicioReferencia;
+
+            string situacaoTemporal;
+
+            if (idadeSinal <= TimeSpan.FromMinutes(1))
+            {
+                situacaoTemporal =
+                    "🟢 RECÉM-CONFIRMADO";
+            }
+            else if (idadeSinal <= TimeSpan.FromMinutes(2))
+            {
+                situacaoTemporal =
+                    "🟢 SINAL RECENTE";
+            }
+            else if (idadeSinal < TimeSpan.FromMinutes(5))
+            {
+                situacaoTemporal =
+                    "🟡 ATENÇÃO AO ATRASO";
+            }
+            else
+            {
+                situacaoTemporal =
+                    "🔴 SINAL ANTIGO";
+            }
+
             return
                 "🦅 VISÃO DE ÁGUIA\n\n" +
                 $"🚨 SINAL {resultado.Simbolo}\n\n" +
@@ -673,15 +714,30 @@ namespace VisaoDeAguia.Services
                 $"⭐ Força: {resultado.Forca}\n" +
                 $"🎯 Pontuação: {resultado.Pontuacao}/100\n" +
                 $"💰 Preço: {resultado.PrecoAtual:0.########}\n\n" +
+
                 $"📈 Tendência 2H: {resultado.Tendencia2H}\n" +
                 $"📈 Tendência 1H: {resultado.Tendencia1H}\n" +
                 $"📊 Estrutura 30M: {resultado.Estrutura30M}\n" +
                 $"🔄 Pullback 15M: {resultado.Pullback15M}\n" +
                 $"⚡ Confirmação 5M: {resultado.Confirmacao5M}\n\n" +
+
                 $"🛡️ Suporte: {resultado.Suporte:0.########}\n" +
                 $"🚧 Resistência: {resultado.Resistencia:0.########}\n\n" +
-                $"🕐 Vela: {resultado.DataHora:dd/MM/yyyy HH:mm}\n\n" +
-                "⚠️ Sinal gerado automaticamente pelo Visão de Águia.";
+
+                "⏱️ TEMPO DO SINAL\n" +
+                $"🕐 Vela M5 analisada: {horarioVela:dd/MM/yyyy HH:mm}\n" +
+                $"📍 Referência seguinte: {inicioReferencia:HH:mm}\n" +
+                $"⌛ Janela de acompanhamento: {inicioReferencia:HH:mm} até {fimReferencia:HH:mm}\n" +
+                $"{situacaoTemporal}\n\n" +
+
+                "📌 LEITURA OPERACIONAL\n" +
+                "• M5: use a confirmação como contexto e evite perseguir um movimento que já se afastou do preço do sinal.\n" +
+                "• M1: pode ser usado para observar um novo pullback e confirmação na mesma direção do cenário maior.\n" +
+                "• Se o preço perder a estrutura que sustentou o sinal, considere a leitura invalidada.\n" +
+                "• Quanto maior o atraso no recebimento, menor a utilidade do preço original como referência.\n\n" +
+
+                "⚠️ Sinal gerado automaticamente pelo Visão de Águia.\n" +
+                "📚 Informação técnica; não representa garantia de resultado.";
         }
     }
 }
