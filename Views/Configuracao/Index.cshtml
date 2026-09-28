@@ -7,7 +7,6 @@
 <div class="container py-5">
 
     <div class="mb-5">
-
         <span class="secao-label">
             VISÃO DE ÁGUIA
         </span>
@@ -20,7 +19,6 @@
             Configure o recebimento e a qualidade dos sinais
             analisados pelo sistema.
         </p>
-
     </div>
 
     @if (TempData["Sucesso"] != null)
@@ -192,6 +190,78 @@
                 O robô está configurado para monitorar exclusivamente
                 o EUR/USD e buscar oportunidades seguindo tendência,
                 pullback e confirmação de entrada.
+            </div>
+
+        </div>
+
+        <!-- HORÁRIO DAS ANÁLISES -->
+        <div class="painel-analise mb-4">
+
+            <div class="painel-topo">
+                <span>HORÁRIO DAS ANÁLISES</span>
+                <span>PERÍODO DIÁRIO</span>
+            </div>
+
+            <div class="mt-4">
+
+                <span class="secao-label">
+                    ESCOLHA O PERÍODO
+                </span>
+
+                <h3 class="mt-2 mb-2">
+                    Quando o robô deve analisar?
+                </h3>
+
+                <p class="text-secondary mb-4">
+                    Escolha o horário em que deseja receber as análises.
+                    O robô pode analisar o mercado por até
+                    <strong>2 horas e 30 minutos por dia.</strong>
+                </p>
+
+                <div class="row g-4">
+
+                    <div class="col-md-6">
+
+                        <label asp-for="HorarioInicio"
+                               class="form-label">
+                            Horário de início
+                        </label>
+
+                        <input asp-for="HorarioInicio"
+                               type="time"
+                               class="form-control" />
+
+                        <span asp-validation-for="HorarioInicio"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label asp-for="HorarioFim"
+                               class="form-label">
+                            Horário de término
+                        </label>
+
+                        <input asp-for="HorarioFim"
+                               type="time"
+                               class="form-control" />
+
+                        <span asp-validation-for="HorarioFim"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="form-text text-secondary mt-3">
+                    Exemplo: das 08:30 às 11:00.
+                    Você pode escolher outro período, desde que
+                    não ultrapasse 2h30.
+                </div>
+
             </div>
 
         </div>

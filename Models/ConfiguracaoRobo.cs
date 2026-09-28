@@ -34,6 +34,16 @@ namespace VisaoDeAguia.Models
 
         public int PontuacaoMinima { get; set; } = 80;
 
-        public DateTime DataAtualizacao { get; set; } = DateTime.UtcNow;
+        // Horário de funcionamento do robô
+        [Required]
+        public TimeSpan HorarioInicio { get; set; } =
+            new TimeSpan(8, 30, 0);
+
+        [Required]
+        public TimeSpan HorarioFim { get; set; } =
+            new TimeSpan(11, 0, 0);
+
+        public DateTime DataAtualizacao { get; set; } =
+            DateTime.UtcNow;
     }
 }

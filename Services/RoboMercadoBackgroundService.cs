@@ -35,99 +35,37 @@ namespace VisaoDeAguia.Services
             {
                 try
                 {
-                    var horarioInicio = ObterHorario(
-                        "RoboMercado:HorarioInicio",
-                        new TimeSpan(6, 30, 0));
-
-                    var horarioFim = ObterHorario(
-                        "RoboMercado:HorarioFim",
-                        new TimeSpan(9, 0, 0));
-
                     var agoraLocal = ObterAgoraLocal();
 
-                    // Não opera sábado nem domingo.
+                    // O robô continua sem analisar aos sábados e domingos.
                     if (!EhDiaUtil(agoraLocal))
                     {
-                        var tempoAteProximoDiaUtil =
-                            CalcularTempoAteProximoDiaUtil(
-                                agoraLocal,
-                                horarioInicio);
-
-                        var proximaAtivacao =
-                            agoraLocal.Add(
-                                tempoAteProximoDiaUtil);
-
                         _logger.LogInformation(
-                            "Robô pausado no fim de semana. Agora: {Agora}. Próxima ativação: {ProximaAtivacao}.",
+                            "Robô pausado no fim de semana. Agora: {Agora}.",
                             agoraLocal.ToString(
-                                "dd/MM/yyyy HH:mm:ss"),
-                            proximaAtivacao.ToString(
                                 "dd/MM/yyyy HH:mm:ss"));
 
                         await Task.Delay(
-                            tempoAteProximoDiaUtil,
+                            TimeSpan.FromMinutes(5),
                             stoppingToken);
 
                         continue;
                     }
 
-                    if (!EstaDentroDoHorario(
-                            agoraLocal.TimeOfDay,
-                            horarioInicio,
-                            horarioFim))
-                    {
-                        var tempoAteInicio =
-                            CalcularTempoAteInicio(
-                                agoraLocal,
-                                horarioInicio);
-
-                        _logger.LogInformation(
-                            "Robô fora do horário de operação. Agora: {Agora}. Horário: {Inicio} até {Fim}. Próxima ativação em {Tempo}.",
-                            agoraLocal.ToString(
-                                "dd/MM/yyyy HH:mm:ss"),
-                            horarioInicio.ToString(@"hh\:mm"),
-                            horarioFim.ToString(@"hh\:mm"),
-                            tempoAteInicio);
-
-                        await Task.Delay(
-                            tempoAteInicio,
-                            stoppingToken);
-
-                        continue;
-                    }
-
+                    // O serviço fica ativo o dia inteiro, mas acorda
+                    // somente no fechamento de cada bloco de 5 minutos.
+                    // O horário individual de cada usuário é validado
+                    // em ExecutarAnalisesAsync antes de consumir a API.
                     var tempoEspera =
                         CalcularTempoAteProximaExecucao(
                             agoraLocal);
 
                     var proximaExecucaoLocal =
-                        agoraLocal.Add(tempoEspera);
-
-                    if (!EstaDentroDoHorario(
-                            proximaExecucaoLocal.TimeOfDay,
-                            horarioInicio,
-                            horarioFim))
-                    {
-                        var tempoAteInicio =
-                            CalcularTempoAteInicio(
-                                agoraLocal,
-                                horarioInicio);
-
-                        _logger.LogInformation(
-                            "Fim do horário de operação. Agora: {Agora}. Próxima ativação às {Inicio}.",
-                            agoraLocal.ToString(
-                                "dd/MM/yyyy HH:mm:ss"),
-                            horarioInicio.ToString(@"hh\:mm"));
-
-                        await Task.Delay(
-                            tempoAteInicio,
-                            stoppingToken);
-
-                        continue;
-                    }
+                        agoraLocal.Add(
+                            tempoEspera);
 
                     _logger.LogInformation(
-                        "Horário de Brasília: {Agora}. Próxima análise: {Proxima}.",
+                        "Horário de Brasília: {Agora}. Próxima verificação: {Proxima}.",
                         agoraLocal.ToString(
                             "dd/MM/yyyy HH:mm:ss"),
                         proximaExecucaoLocal.ToString(
@@ -140,22 +78,10 @@ namespace VisaoDeAguia.Services
                     if (stoppingToken.IsCancellationRequested)
                         break;
 
-                    // Confere novamente o horário de Brasília
-                    // antes de consumir a API.
                     agoraLocal = ObterAgoraLocal();
 
                     if (!EhDiaUtil(agoraLocal))
-                    {
                         continue;
-                    }
-
-                    if (!EstaDentroDoHorario(
-                            agoraLocal.TimeOfDay,
-                            horarioInicio,
-                            horarioFim))
-                    {
-                        continue;
-                    }
 
                     await ExecutarAnalisesAsync(
                         stoppingToken);
@@ -430,6 +356,30 @@ namespace VisaoDeAguia.Services
             {
                 _logger.LogInformation(
                     "Nenhuma configuração ativa encontrada para o robô.");
+
+                return;
+            }
+
+            var agoraLocal =
+                ObterAgoraLocal();
+
+            // Mantém somente os usuários cujo período escolhido
+            // inclui o horário atual de Brasília.
+            configuracoes =
+                configuracoes
+                    .Where(c =>
+                        EstaDentroDoHorario(
+                            agoraLocal.TimeOfDay,
+                            c.HorarioInicio,
+                            c.HorarioFim))
+                    .ToList();
+
+            if (configuracoes.Count == 0)
+            {
+                _logger.LogInformation(
+                    "Nenhum usuário está dentro do horário de análise neste momento. Agora: {Agora}.",
+                    agoraLocal.ToString(
+                        "dd/MM/yyyy HH:mm:ss"));
 
                 return;
             }

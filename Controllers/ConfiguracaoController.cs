@@ -47,7 +47,11 @@ namespace VisaoDeAguia.Controllers
                     AnalisarCriptomoedas = true,
                     ReceberSinalForte = true,
                     ReceberSinalModerado = false,
-                    PontuacaoMinima = 80
+                    PontuacaoMinima = 80,
+
+                    // Horário padrão
+                    HorarioInicio = new TimeSpan(8, 30, 0),
+                    HorarioFim = new TimeSpan(11, 0, 0)
                 };
             }
             else
@@ -88,6 +92,10 @@ namespace VisaoDeAguia.Controllers
             var chatIdInformado =
                 !string.IsNullOrWhiteSpace(model.TelegramChatId);
 
+            // ==============================
+            // VALIDAÇÃO DA PONTUAÇÃO
+            // ==============================
+
             if (model.PontuacaoMinima < 0 ||
                 model.PontuacaoMinima > 100)
             {
@@ -95,6 +103,37 @@ namespace VisaoDeAguia.Controllers
                     nameof(model.PontuacaoMinima),
                     "A pontuação mínima deve estar entre 0 e 100.");
             }
+
+            // ==============================
+            // VALIDAÇÃO DO HORÁRIO DO ROBÔ
+            // ==============================
+
+            if (model.HorarioFim <= model.HorarioInicio)
+            {
+                ModelState.AddModelError(
+                    nameof(model.HorarioFim),
+                    "O horário de término deve ser depois do horário de início.");
+            }
+            else
+            {
+                var periodo =
+                    model.HorarioFim -
+                    model.HorarioInicio;
+
+                var limite =
+                    TimeSpan.FromMinutes(150);
+
+                if (periodo > limite)
+                {
+                    ModelState.AddModelError(
+                        nameof(model.HorarioFim),
+                        "O robô pode analisar por no máximo 2 horas e 30 minutos por dia.");
+                }
+            }
+
+            // ==============================
+            // VALIDAÇÃO DO TELEGRAM
+            // ==============================
 
             if (model.TelegramAtivo)
             {
@@ -163,6 +202,13 @@ namespace VisaoDeAguia.Controllers
 
             configuracao.PontuacaoMinima =
                 model.PontuacaoMinima;
+
+            // Horário escolhido pelo usuário
+            configuracao.HorarioInicio =
+                model.HorarioInicio;
+
+            configuracao.HorarioFim =
+                model.HorarioFim;
 
             configuracao.DataAtualizacao =
                 DateTime.UtcNow;
