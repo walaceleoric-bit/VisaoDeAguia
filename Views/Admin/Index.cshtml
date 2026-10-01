@@ -1,0 +1,763 @@
+﻿@model IEnumerable<VisaoDeAguia.ViewModels.AdminUsuarioViewModel>
+
+@{
+    ViewData["Title"] = "Painel do Dono";
+
+    const string emailDono =
+        "walaceleoric@gmail.com";
+}
+
+<section class="admin-painel">
+
+    <div class="container">
+
+        <div class="admin-cabecalho">
+
+            <div>
+
+                <span class="admin-tag">
+                    ADMINISTRAÇÃO
+                </span>
+
+                <h1>
+                    Painel do Dono
+                </h1>
+
+                <p>
+                    Gerencie os usuários cadastrados no
+                    Visão de Águia.
+                </p>
+
+            </div>
+
+        </div>
+
+        @if (TempData["AdminSucesso"] != null)
+        {
+            <div class="admin-mensagem admin-sucesso">
+                @TempData["AdminSucesso"]
+            </div>
+        }
+
+        @if (TempData["AdminErro"] != null)
+        {
+            <div class="admin-mensagem admin-erro">
+                @TempData["AdminErro"]
+            </div>
+        }
+
+        <div class="admin-resumo">
+
+            <div class="admin-resumo-card">
+
+                <span>
+                    Usuários
+                </span>
+
+                <strong>
+                    @Model.Count()
+                </strong>
+
+            </div>
+
+            <div class="admin-resumo-card">
+
+                <span>
+                    Liberados
+                </span>
+
+                <strong class="texto-verde">
+                    @Model.Count(u => u.Ativo)
+                </strong>
+
+            </div>
+
+            <div class="admin-resumo-card">
+
+                <span>
+                    Aguardando / bloqueados
+                </span>
+
+                <strong class="texto-amarelo">
+                    @Model.Count(u => !u.Ativo)
+                </strong>
+
+            </div>
+
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="admin-vazio">
+                Nenhum usuário cadastrado.
+            </div>
+        }
+        else
+        {
+            <div class="admin-lista">
+
+                @foreach (var usuario in Model)
+                {
+                    var ehDono =
+                        string.Equals(
+                            usuario.Email,
+                            emailDono,
+                            StringComparison.OrdinalIgnoreCase);
+
+                    <div class="admin-usuario-card">
+
+                        <div class="admin-usuario-topo">
+
+                            <div class="admin-identificacao">
+
+                                <div class="admin-avatar">
+                                    @(string.IsNullOrWhiteSpace(usuario.Nome)
+                                        ? "U"
+                                        : usuario.Nome.Substring(0, 1).ToUpper())
+                                </div>
+
+                                <div>
+
+                                    <h2>
+                                        @usuario.Nome
+                                    </h2>
+
+                                    <span>
+                                        @usuario.Email
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                            <div class="admin-topo-status">
+
+                                @if (ehDono)
+                                {
+                                    <div class="admin-status status-dono">
+                                        ★ DONO
+                                    </div>
+                                }
+
+                                @if (usuario.Ativo)
+                                {
+                                    <div class="admin-status status-ativo">
+                                        ● LIBERADO
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="admin-status status-bloqueado">
+                                        ● AGUARDANDO / BLOQUEADO
+                                    </div>
+                                }
+
+                            </div>
+
+                        </div>
+
+                        <div class="admin-data">
+
+                            Cadastro:
+<strong>
+    @usuario.DataCadastro.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+</strong>
+
+                        </div>
+
+                        <div class="admin-separador"></div>
+
+                        <div class="admin-bloco">
+
+                            <div class="admin-bloco-titulo">
+                                DADOS DO USUÁRIO
+                            </div>
+
+                            <form asp-controller="Admin"
+                                  asp-action="AlterarDados"
+                                  method="post">
+
+                                <input type="hidden"
+                                       name="id"
+                                       value="@usuario.Id" />
+
+                                <div class="admin-grid">
+
+                                    <div class="admin-campo">
+
+                                        <label>
+                                            Nome
+                                        </label>
+
+                                        <input type="text"
+                                               name="nome"
+                                               value="@usuario.Nome"
+                                               class="admin-input"
+                                               required />
+
+                                    </div>
+
+                                    <div class="admin-campo">
+
+                                        <label>
+                                            E-mail / Login
+                                        </label>
+
+                                        <input type="email"
+                                               name="email"
+                                               value="@usuario.Email"
+                                               class="admin-input"
+                                               readonly="@ehDono"
+                                               required />
+
+                                    </div>
+
+                                </div>
+
+                                <button type="submit"
+                                        class="admin-botao admin-botao-salvar">
+                                    Salvar dados
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                        <div class="admin-separador"></div>
+
+                        <div class="admin-bloco">
+
+                            <div class="admin-bloco-titulo">
+                                ALTERAR SENHA
+                            </div>
+
+                            <form asp-controller="Admin"
+                                  asp-action="AlterarSenha"
+                                  method="post">
+
+                                <input type="hidden"
+                                       name="id"
+                                       value="@usuario.Id" />
+
+                                <div class="admin-senha-linha">
+
+                                    <div class="admin-campo admin-campo-senha">
+
+                                        <label>
+                                            Nova senha
+                                        </label>
+
+                                        <input type="password"
+                                               name="novaSenha"
+                                               class="admin-input"
+                                               placeholder="Digite a nova senha"
+                                               autocomplete="new-password"
+                                               required />
+
+                                    </div>
+
+                                    <button type="submit"
+                                            class="admin-botao admin-botao-senha">
+                                        Alterar senha
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                        <div class="admin-separador"></div>
+
+                        <div class="admin-acesso">
+
+                            <div>
+
+                                <strong>
+                                    Acesso ao sistema
+                                </strong>
+
+                                <span>
+
+                                    @if (ehDono)
+                                    {
+                                        <text>
+                                            Conta principal do dono do sistema.
+                                        </text>
+                                    }
+                                    else if (usuario.Ativo)
+                                    {
+                                        <text>
+                                            Este usuário está autorizado a entrar.
+                                        </text>
+                                    }
+                                    else
+                                    {
+                                        <text>
+                                            Este usuário não pode entrar no sistema.
+                                        </text>
+                                    }
+
+                                </span>
+
+                            </div>
+
+                            @if (!ehDono)
+                            {
+                                <form asp-controller="Admin"
+                                      asp-action="AlterarStatus"
+                                      method="post">
+
+                                    <input type="hidden"
+                                           name="id"
+                                           value="@usuario.Id" />
+
+                                    @if (usuario.Ativo)
+                                    {
+                                        <button type="submit"
+                                                class="admin-botao admin-botao-bloquear">
+                                            Bloquear usuário
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit"
+                                                class="admin-botao admin-botao-liberar">
+                                            Liberar usuário
+                                        </button>
+                                    }
+
+                                </form>
+                            }
+
+                        </div>
+
+                        @if (!ehDono)
+                        {
+                            <div class="admin-separador"></div>
+
+                            <div class="admin-exclusao">
+
+                                <div>
+
+                                    <strong>
+                                        Excluir usuário
+                                    </strong>
+
+                                    <span>
+                                        Remove definitivamente este usuário
+                                        do sistema.
+                                    </span>
+
+                                </div>
+
+                                <form asp-controller="Admin"
+                                      asp-action="ExcluirUsuario"
+                                      method="post"
+                                      onsubmit="return confirm('Tem certeza que deseja excluir este usuário? Esta ação não poderá ser desfeita.');">
+
+                                    <input type="hidden"
+                                           name="id"
+                                           value="@usuario.Id" />
+
+                                    <button type="submit"
+                                            class="admin-botao admin-botao-excluir">
+                                        Excluir usuário
+                                    </button>
+
+                                </form>
+
+                            </div>
+                        }
+
+                    </div>
+                }
+
+            </div>
+        }
+
+    </div>
+
+</section>
+
+<style>
+
+    .admin-painel {
+        min-height: 70vh;
+        padding: 38px 0 60px;
+    }
+
+    .admin-cabecalho {
+        margin-bottom: 25px;
+    }
+
+    .admin-tag {
+        display: block;
+        margin-bottom: 5px;
+        color: #00e696;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 1.6px;
+    }
+
+    .admin-cabecalho h1 {
+        margin: 0;
+        color: #e8f1f5;
+        font-size: 30px;
+        font-weight: 800;
+    }
+
+    .admin-cabecalho p {
+        margin: 7px 0 0;
+        color: #8295a3;
+        font-size: 14px;
+    }
+
+    .admin-mensagem {
+        margin-bottom: 20px;
+        padding: 13px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .admin-sucesso {
+        color: #00e696;
+        background: rgba(0, 230, 150, 0.08);
+        border: 1px solid rgba(0, 230, 150, 0.30);
+    }
+
+    .admin-erro {
+        color: #ff7373;
+        background: rgba(255, 72, 72, 0.08);
+        border: 1px solid rgba(255, 72, 72, 0.30);
+    }
+
+    .admin-resumo {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .admin-resumo-card {
+        padding: 17px;
+        background: rgba(8, 15, 21, 0.96);
+        border: 1px solid #1e3542;
+        border-radius: 10px;
+    }
+
+    .admin-resumo-card span {
+        display: block;
+        margin-bottom: 3px;
+        color: #738793;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+
+    .admin-resumo-card strong {
+        color: #e8f1f5;
+        font-size: 25px;
+        font-weight: 800;
+    }
+
+    .admin-resumo-card .texto-verde {
+        color: #00e696;
+    }
+
+    .admin-resumo-card .texto-amarelo {
+        color: #ffc107;
+    }
+
+    .admin-lista {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .admin-usuario-card {
+        padding: 22px;
+        background: rgba(8, 15, 21, 0.96);
+        border: 1px solid #1e3542;
+        border-radius: 12px;
+    }
+
+    .admin-usuario-topo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .admin-identificacao {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .admin-avatar {
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: rgba(0, 230, 150, 0.12);
+        border: 1px solid rgba(0, 230, 150, 0.32);
+        color: #00e696;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .admin-identificacao h2 {
+        margin: 0 0 3px;
+        color: #e7f0f4;
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+    .admin-identificacao span {
+        color: #8295a3;
+        font-size: 12px;
+    }
+
+    .admin-topo-status {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-wrap: wrap;
+    }
+
+    .admin-status {
+        padding: 7px 10px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.6px;
+        white-space: nowrap;
+    }
+
+    .status-dono {
+        color: #4bc7ff;
+        background: rgba(75, 199, 255, 0.08);
+        border: 1px solid rgba(75, 199, 255, 0.30);
+    }
+
+    .status-ativo {
+        color: #00e696;
+        background: rgba(0, 230, 150, 0.08);
+        border: 1px solid rgba(0, 230, 150, 0.25);
+    }
+
+    .status-bloqueado {
+        color: #ffc107;
+        background: rgba(255, 193, 7, 0.08);
+        border: 1px solid rgba(255, 193, 7, 0.28);
+    }
+
+    .admin-data {
+        margin-top: 13px;
+        color: #6f838f;
+        font-size: 11px;
+    }
+
+    .admin-data strong {
+        color: #aebdc5;
+        font-weight: 600;
+    }
+
+    .admin-separador {
+        height: 1px;
+        margin: 19px 0;
+        background: #192b35;
+    }
+
+    .admin-bloco-titulo {
+        margin-bottom: 11px;
+        color: #8295a3;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    .admin-campo label {
+        display: block;
+        margin-bottom: 5px;
+        color: #9badb6;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .admin-input {
+        width: 100%;
+        height: 42px;
+        padding: 0 12px;
+        color: #e3edf2;
+        background: #0c171e;
+        border: 1px solid #243b47;
+        border-radius: 7px;
+        outline: none;
+        font-size: 13px;
+        transition: 0.2s ease;
+    }
+
+    .admin-input:focus {
+        border-color: #00e696;
+        box-shadow: 0 0 0 2px rgba(0, 230, 150, 0.08);
+    }
+
+    .admin-input[readonly] {
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
+
+    .admin-botao {
+        min-height: 40px;
+        padding: 9px 15px;
+        border-radius: 7px;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .admin-botao:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+    }
+
+    .admin-botao-salvar {
+        margin-top: 12px;
+        color: #06140f;
+        background: #00e696;
+        border: 1px solid #00e696;
+    }
+
+    .admin-senha-linha {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+    }
+
+    .admin-campo-senha {
+        flex: 1;
+    }
+
+    .admin-botao-senha {
+        color: #dce7ed;
+        background: #172832;
+        border: 1px solid #294451;
+    }
+
+    .admin-acesso,
+    .admin-exclusao {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .admin-acesso strong,
+    .admin-exclusao strong {
+        display: block;
+        margin-bottom: 3px;
+        color: #dce7ed;
+        font-size: 13px;
+    }
+
+    .admin-acesso span,
+    .admin-exclusao span {
+        color: #738793;
+        font-size: 11px;
+    }
+
+    .admin-botao-liberar {
+        color: #06140f;
+        background: #00e696;
+        border: 1px solid #00e696;
+    }
+
+    .admin-botao-bloquear {
+        color: #ff7373;
+        background: rgba(255, 72, 72, 0.07);
+        border: 1px solid rgba(255, 72, 72, 0.40);
+    }
+
+    .admin-exclusao {
+        padding: 14px;
+        background: rgba(255, 72, 72, 0.035);
+        border: 1px solid rgba(255, 72, 72, 0.16);
+        border-radius: 8px;
+    }
+
+    .admin-exclusao strong {
+        color: #ff7373;
+    }
+
+    .admin-botao-excluir {
+        color: #ffffff;
+        background: #c93434;
+        border: 1px solid #e34c4c;
+    }
+
+    .admin-vazio {
+        padding: 30px;
+        text-align: center;
+        color: #8295a3;
+        background: rgba(8, 15, 21, 0.96);
+        border: 1px solid #1e3542;
+        border-radius: 10px;
+    }
+
+    @@media (max-width: 768px) {
+
+        .admin-painel {
+            padding-top: 25px;
+        }
+
+        .admin-resumo {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-usuario-topo {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-senha-linha {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .admin-acesso,
+        .admin-exclusao {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .admin-acesso form,
+        .admin-acesso button,
+        .admin-exclusao form,
+        .admin-exclusao button {
+            width: 100%;
+        }
+
+        .admin-botao-senha {
+            width: 100%;
+        }
+    }
+
+</style>

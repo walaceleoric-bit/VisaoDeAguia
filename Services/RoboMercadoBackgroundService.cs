@@ -52,10 +52,10 @@ namespace VisaoDeAguia.Services
                         continue;
                     }
 
-                    // O serviço fica ativo o dia inteiro, mas acorda
-                    // somente no fechamento de cada bloco de 5 minutos.
-                    // O horário individual de cada usuário é validado
-                    // em ExecutarAnalisesAsync antes de consumir a API.
+                    // O serviço fica ativo o dia inteiro,
+                    // verificando no fechamento de cada bloco de 5 minutos.
+                    // O horário global definido no appsettings.json
+                    // é validado em ExecutarAnalisesAsync.
                     var tempoEspera =
                         CalcularTempoAteProximaExecucao(
                             agoraLocal);
@@ -323,9 +323,6 @@ namespace VisaoDeAguia.Services
         private async Task ExecutarAnalisesAsync(
             CancellationToken cancellationToken)
         {
-            const int limiteDiarioMinutos = 150;
-            const int consumoPorCicloMinutos = 5;
-
             using var scope = _scopeFactory.CreateScope();
 
             var context = scope.ServiceProvider
@@ -337,102 +334,64 @@ namespace VisaoDeAguia.Services
             var telegramService = scope.ServiceProvider
                 .GetRequiredService<ITelegramService>();
 
+            var horarioInicio = ObterHorario(
+                "RoboMercado:HorarioInicio",
+                TimeSpan.FromHours(6.5));
+
+            var horarioFim = ObterHorario(
+                "RoboMercado:HorarioFim",
+                TimeSpan.FromHours(12));
+
+            var agoraLocal = ObterAgoraLocal();
+
+            if (!EstaDentroDoHorario(
+                    agoraLocal.TimeOfDay,
+                    horarioInicio,
+                    horarioFim))
+            {
+                _logger.LogInformation(
+                    "Robô fora do horário global de análise. Horário configurado: {Inicio} - {Fim}. Agora: {Agora}.",
+                    horarioInicio,
+                    horarioFim,
+                    agoraLocal.ToString(
+                        "dd/MM/yyyy HH:mm:ss"));
+
+                return;
+            }
+
             var configuracoes = await context.ConfiguracoesRobo
                 .AsNoTracking()
                 .Where(c =>
                     c.TelegramAtivo &&
                     c.AnalisarForex &&
-                    !string.IsNullOrWhiteSpace(c.TelegramBotToken) &&
-                    !string.IsNullOrWhiteSpace(c.TelegramChatId))
+                    !string.IsNullOrWhiteSpace(
+                        c.TelegramBotToken) &&
+                    !string.IsNullOrWhiteSpace(
+                        c.TelegramChatId))
                 .ToListAsync(cancellationToken);
 
             if (configuracoes.Count == 0)
             {
                 _logger.LogInformation(
                     "Nenhuma configuração ativa encontrada para o robô.");
-                return;
-            }
 
-            var agoraLocal = ObterAgoraLocal();
-
-            configuracoes = configuracoes
-                .Where(c => EstaDentroDoHorario(
-                    agoraLocal.TimeOfDay,
-                    c.HorarioInicio,
-                    c.HorarioFim))
-                .ToList();
-
-            if (configuracoes.Count == 0)
-            {
-                _logger.LogInformation(
-                    "Nenhum usuário está dentro do horário de análise neste momento. Agora: {Agora}.",
-                    agoraLocal.ToString("dd/MM/yyyy HH:mm:ss"));
-                return;
-            }
-
-            // A data lógica é a data atual de Brasília.
-            // Para persistir em timestamptz sem erro do Npgsql,
-            // convertemos a meia-noite local para UTC.
-            var dataConsumoUtc =
-                ConverterHorarioLocalParaUtc(agoraLocal.Date);
-
-            var usuariosNoHorario = configuracoes
-                .Select(c => c.UsuarioId)
-                .Distinct()
-                .ToList();
-
-            var consumosDoDia = await context.ConsumosDiariosRobo
-                .Where(c =>
-                    usuariosNoHorario.Contains(c.UsuarioId) &&
-                    c.Data == dataConsumoUtc)
-                .ToListAsync(cancellationToken);
-
-            var consumosPorUsuario = consumosDoDia
-                .ToDictionary(c => c.UsuarioId);
-
-            var configuracoesComSaldo =
-                new List<ConfiguracaoRobo>();
-
-            foreach (var configuracao in configuracoes)
-            {
-                var minutosUtilizados =
-                    consumosPorUsuario.TryGetValue(
-                        configuracao.UsuarioId,
-                        out var consumoExistente)
-                        ? consumoExistente.MinutosUtilizados
-                        : 0;
-
-                if (minutosUtilizados >= limiteDiarioMinutos)
-                {
-                    _logger.LogInformation(
-                        "Usuário {UsuarioId} atingiu o limite diário de {Limite} minutos.",
-                        configuracao.UsuarioId,
-                        limiteDiarioMinutos);
-                    continue;
-                }
-
-                configuracoesComSaldo.Add(configuracao);
-            }
-
-            if (configuracoesComSaldo.Count == 0)
-            {
-                _logger.LogInformation(
-                    "Todos os usuários dentro do horário já atingiram o limite diário de análise.");
                 return;
             }
 
             const string simbolo = "EUR/USD";
+
             ResultadoAnalise resultado;
 
             try
             {
                 _logger.LogInformation(
-                    "Iniciando análise automática de {Simbolo} para {QuantidadeUsuarios} usuário(s) com saldo.",
+                    "Iniciando análise automática de {Simbolo} para {QuantidadeUsuarios} usuário(s).",
                     simbolo,
-                    configuracoesComSaldo.Count);
+                    configuracoes.Count);
 
-                resultado = await analiseMercadoService
-                    .AnalisarAsync(simbolo);
+                resultado =
+                    await analiseMercadoService
+                        .AnalisarAsync(simbolo);
 
                 _logger.LogInformation(
                     "Análise concluída. {Simbolo} - {Direcao} - {Pontuacao}/100.",
@@ -444,48 +403,9 @@ namespace VisaoDeAguia.Services
             {
                 _logger.LogError(
                     ex,
-                    "Erro ao analisar automaticamente {Simbolo}. O saldo dos usuários não será consumido.",
+                    "Erro ao analisar automaticamente {Simbolo}.",
                     simbolo);
-                return;
-            }
 
-            // Só consome saldo depois que a análise foi realmente executada.
-            // Cada ciclo M5 utiliza 5 minutos por usuário elegível.
-            foreach (var configuracao in configuracoesComSaldo)
-            {
-                if (consumosPorUsuario.TryGetValue(
-                        configuracao.UsuarioId,
-                        out var consumo))
-                {
-                    consumo.MinutosUtilizados = Math.Min(
-                        limiteDiarioMinutos,
-                        consumo.MinutosUtilizados +
-                        consumoPorCicloMinutos);
-                }
-                else
-                {
-                    consumo = new ConsumoDiarioRobo
-                    {
-                        UsuarioId = configuracao.UsuarioId,
-                        Data = dataConsumoUtc,
-                        MinutosUtilizados = consumoPorCicloMinutos
-                    };
-
-                    context.ConsumosDiariosRobo.Add(consumo);
-                    consumosPorUsuario[configuracao.UsuarioId] =
-                        consumo;
-                }
-            }
-
-            try
-            {
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Erro ao registrar o consumo diário dos usuários.");
                 return;
             }
 
@@ -493,12 +413,13 @@ namespace VisaoDeAguia.Services
                 resultado.Direcao != "VENDER")
             {
                 _logger.LogInformation(
-                    "Nenhum sinal confirmado para {Simbolo}. O ciclo de análise foi contabilizado normalmente.",
+                    "Nenhum sinal confirmado para {Simbolo}.",
                     resultado.Simbolo);
+
                 return;
             }
 
-            foreach (var configuracao in configuracoesComSaldo)
+            foreach (var configuracao in configuracoes)
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
@@ -715,7 +636,8 @@ namespace VisaoDeAguia.Services
                     : distanciaSuporte;
 
             var limiteNivelProximo =
-                resultado.PrecoAtual * 0.001m;
+                resultado.PrecoAtual *
+                0.001m;
 
             var nivelProximo =
                 distanciaNivelContrario <=

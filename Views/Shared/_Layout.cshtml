@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
+
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
 
@@ -45,16 +46,6 @@
 
                     <ul class="navbar-nav ms-auto align-items-lg-center">
 
-                        <li class="nav-item">
-
-                            <a class="nav-link"
-                               asp-controller="Home"
-                               asp-action="Index">
-                                Início
-                            </a>
-
-                        </li>
-
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
@@ -77,15 +68,21 @@
 
                             </li>
 
-                            <li class="nav-item">
+                            @if (string.Equals(
+                                User.Identity?.Name,
+                                "walaceleoric@gmail.com",
+                                StringComparison.OrdinalIgnoreCase))
+                            {
+                                <li class="nav-item">
 
-                                <a class="nav-link"
-                                   asp-controller="Configuracao"
-                                   asp-action="Index">
-                                    Configuração
-                                </a>
+                                    <a class="nav-link"
+                                       asp-controller="Admin"
+                                       asp-action="Index">
+                                        Painel do Dono
+                                    </a>
 
-                            </li>
+                                </li>
+                            }
 
                             <li class="nav-item ms-lg-3">
 
@@ -124,17 +121,6 @@
         </nav>
 
     </header>
-
-
-    @* =========================================
-       SALDO DIÁRIO DO ROBÔ
-       Aparece somente para usuário autenticado.
-       ========================================= *@
-
-    @if (User.Identity?.IsAuthenticated == true)
-    {
-        @await Component.InvokeAsync("SaldoRobo")
-    }
 
 
     <main role="main">

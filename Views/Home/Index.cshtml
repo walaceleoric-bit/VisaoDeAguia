@@ -35,24 +35,10 @@
             confirmação de possíveis cenários.
         </p>
 
-        <div class="hero-acoes">
+        @if (User.Identity?.IsAuthenticated != true)
+        {
+            <div class="hero-acoes">
 
-            @if (User.Identity?.IsAuthenticated == true)
-            {
-                <a asp-controller="Analise"
-                   asp-action="Index"
-                   class="btn-visao-principal">
-                    Analisar Mercado
-                </a>
-
-                <a asp-controller="Configuracao"
-                   asp-action="Index"
-                   class="btn-visao-secundario">
-                    Configurar Robô
-                </a>
-            }
-            else
-            {
                 <a asp-controller="Conta"
                    asp-action="Login"
                    class="btn-visao-principal">
@@ -64,9 +50,9 @@
                    class="btn-visao-secundario">
                     Criar Conta
                 </a>
-            }
 
-        </div>
+            </div>
+        }
 
         <div class="hero-status">
             <span></span>
@@ -186,19 +172,19 @@
                     </span>
 
                     <h3>
-                        Monitoramento no seu horário
+                        Monitoramento automático
                     </h3>
 
                     <p>
-                        Escolha o período em que deseja que o robô
-                        acompanhe o mercado e receba automaticamente
-                        os sinais que passarem pelos filtros.
+                        O robô acompanha o mercado automaticamente
+                        durante o período de operação definido pelo
+                        sistema e avalia os cenários encontrados.
                     </p>
 
                     <ul>
-                        <li>Horário configurável</li>
-                        <li>Até 2h30 de análise por dia</li>
                         <li>Monitoramento automático</li>
+                        <li>Análise durante o período de operação</li>
+                        <li>Filtro inteligente de cenários</li>
                         <li>Envio de sinais pelo Telegram</li>
                     </ul>
 
