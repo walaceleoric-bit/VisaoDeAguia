@@ -49,6 +49,13 @@ builder.Services.AddScoped<ITwelveDataService, TwelveDataService>();
 // Serviço de análise de mercado
 builder.Services.AddScoped<IAnaliseMercadoService, AnaliseMercadoService>();
 
+// Última análise realizada pelo robô.
+// Singleton = uma única instância compartilhada
+// entre o robô automático e os controllers.
+builder.Services.AddSingleton<
+    IUltimaAnaliseService,
+    UltimaAnaliseService>();
+
 // Serviço do Telegram
 builder.Services.AddHttpClient<ITelegramService, TelegramService>(client =>
 {

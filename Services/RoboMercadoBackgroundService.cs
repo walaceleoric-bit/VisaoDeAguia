@@ -9,17 +9,20 @@ namespace VisaoDeAguia.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly ILogger<RoboMercadoBackgroundService> _logger;
+        private readonly IUltimaAnaliseService _ultimaAnaliseService;
 
         private TimeZoneInfo? _fusoHorario;
 
         public RoboMercadoBackgroundService(
             IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
-            ILogger<RoboMercadoBackgroundService> logger)
+            ILogger<RoboMercadoBackgroundService> logger,
+            IUltimaAnaliseService ultimaAnaliseService)
         {
             _scopeFactory = scopeFactory;
             _configuration = configuration;
             _logger = logger;
+            _ultimaAnaliseService = ultimaAnaliseService;
         }
 
         protected override async Task ExecuteAsync(
@@ -37,7 +40,7 @@ namespace VisaoDeAguia.Services
                 {
                     var agoraLocal = ObterAgoraLocal();
 
-                    // O robô continua sem analisar aos sábados e domingos.
+                    // O robô não analisa aos sábados e domingos.
                     if (!EhDiaUtil(agoraLocal))
                     {
                         _logger.LogInformation(
@@ -52,10 +55,11 @@ namespace VisaoDeAguia.Services
                         continue;
                     }
 
-                    // O serviço fica ativo o dia inteiro,
-                    // verificando no fechamento de cada bloco de 5 minutos.
-                    // O horário global definido no appsettings.json
-                    // é validado em ExecutarAnalisesAsync.
+                    // O serviço permanece ativo e verifica
+                    // o fechamento de cada bloco de 5 minutos.
+                    //
+                    // O horário permitido para análise é
+                    // definido globalmente no appsettings.json.
                     var tempoEspera =
                         CalcularTempoAteProximaExecucao(
                             agoraLocal);
@@ -107,6 +111,11 @@ namespace VisaoDeAguia.Services
                 "Robô Visão de Águia finalizado.");
         }
 
+
+        // ==========================================
+        // FUSO HORÁRIO
+        // ==========================================
+
         private TimeZoneInfo ObterFusoHorario()
         {
             var fusoConfigurado =
@@ -128,8 +137,7 @@ namespace VisaoDeAguia.Services
             }
             catch (TimeZoneNotFoundException)
             {
-                // Compatibilidade com ambientes Windows
-                // que eventualmente não reconheçam o ID IANA.
+                // Compatibilidade com Windows.
                 try
                 {
                     return TimeZoneInfo
@@ -166,6 +174,11 @@ namespace VisaoDeAguia.Services
                 fuso);
         }
 
+
+        // ==========================================
+        // HORÁRIO GLOBAL DO ROBÔ
+        // ==========================================
+
         private TimeSpan ObterHorario(
             string chave,
             TimeSpan valorPadrao)
@@ -198,32 +211,6 @@ namespace VisaoDeAguia.Services
                     DayOfWeek.Sunday;
         }
 
-        private static TimeSpan
-            CalcularTempoAteProximoDiaUtil(
-                DateTime agoraLocal,
-                TimeSpan horarioInicio)
-        {
-            var proximaData =
-                agoraLocal.Date.AddDays(1);
-
-            while (
-                proximaData.DayOfWeek ==
-                    DayOfWeek.Saturday ||
-                proximaData.DayOfWeek ==
-                    DayOfWeek.Sunday)
-            {
-                proximaData =
-                    proximaData.AddDays(1);
-            }
-
-            var proximaAtivacao =
-                proximaData.Add(
-                    horarioInicio);
-
-            return proximaAtivacao -
-                   agoraLocal;
-        }
-
         private static bool EstaDentroDoHorario(
             TimeSpan agora,
             TimeSpan inicio,
@@ -231,44 +218,21 @@ namespace VisaoDeAguia.Services
         {
             if (inicio <= fim)
             {
-                return agora >= inicio &&
-                       agora < fim;
+                return
+                    agora >= inicio &&
+                    agora < fim;
             }
 
-            // Também permite períodos
-            // atravessando meia-noite.
-            return agora >= inicio ||
-                   agora < fim;
+            // Também permite períodos atravessando meia-noite.
+            return
+                agora >= inicio ||
+                agora < fim;
         }
 
-        private static TimeSpan
-            CalcularTempoAteInicio(
-                DateTime agoraLocal,
-                TimeSpan horarioInicio)
-        {
-            var proximoInicio =
-                agoraLocal.Date.Add(
-                    horarioInicio);
 
-            if (proximoInicio <= agoraLocal)
-            {
-                proximoInicio =
-                    proximoInicio.AddDays(1);
-
-                while (
-                    proximoInicio.DayOfWeek ==
-                        DayOfWeek.Saturday ||
-                    proximoInicio.DayOfWeek ==
-                        DayOfWeek.Sunday)
-                {
-                    proximoInicio =
-                        proximoInicio.AddDays(1);
-                }
-            }
-
-            return proximoInicio -
-                   agoraLocal;
-        }
+        // ==========================================
+        // PRÓXIMA EXECUÇÃO
+        // ==========================================
 
         private static TimeSpan
             CalcularTempoAteProximaExecucao(
@@ -303,8 +267,9 @@ namespace VisaoDeAguia.Services
                         0);
             }
 
-            // Margem para a vela de 5M estar
-            // fechada e disponível na API.
+            // Pequena margem para garantir que
+            // a vela de 5 minutos já esteja fechada
+            // e disponível na API.
             proximaExecucao =
                 proximaExecucao.AddSeconds(5);
 
@@ -320,29 +285,46 @@ namespace VisaoDeAguia.Services
             return espera;
         }
 
+
+        // ==========================================
+        // EXECUÇÃO DAS ANÁLISES
+        // ==========================================
+
         private async Task ExecutarAnalisesAsync(
             CancellationToken cancellationToken)
         {
-            using var scope = _scopeFactory.CreateScope();
+            using var scope =
+                _scopeFactory.CreateScope();
 
-            var context = scope.ServiceProvider
-                .GetRequiredService<AppDbContext>();
+            var context =
+                scope.ServiceProvider
+                    .GetRequiredService<AppDbContext>();
 
-            var analiseMercadoService = scope.ServiceProvider
-                .GetRequiredService<IAnaliseMercadoService>();
+            var analiseMercadoService =
+                scope.ServiceProvider
+                    .GetRequiredService<IAnaliseMercadoService>();
 
-            var telegramService = scope.ServiceProvider
-                .GetRequiredService<ITelegramService>();
+            var telegramService =
+                scope.ServiceProvider
+                    .GetRequiredService<ITelegramService>();
 
-            var horarioInicio = ObterHorario(
-                "RoboMercado:HorarioInicio",
-                TimeSpan.FromHours(6.5));
 
-            var horarioFim = ObterHorario(
-                "RoboMercado:HorarioFim",
-                TimeSpan.FromHours(12));
+            // ==========================================
+            // HORÁRIO GLOBAL
+            // ==========================================
 
-            var agoraLocal = ObterAgoraLocal();
+            var horarioInicio =
+                ObterHorario(
+                    "RoboMercado:HorarioInicio",
+                    TimeSpan.FromHours(6.5));
+
+            var horarioFim =
+                ObterHorario(
+                    "RoboMercado:HorarioFim",
+                    TimeSpan.FromHours(12));
+
+            var agoraLocal =
+                ObterAgoraLocal();
 
             if (!EstaDentroDoHorario(
                     agoraLocal.TimeOfDay,
@@ -359,44 +341,53 @@ namespace VisaoDeAguia.Services
                 return;
             }
 
-            var configuracoes = await context.ConfiguracoesRobo
-                .AsNoTracking()
-                .Where(c =>
-                    c.TelegramAtivo &&
-                    c.AnalisarForex &&
-                    !string.IsNullOrWhiteSpace(
-                        c.TelegramBotToken) &&
-                    !string.IsNullOrWhiteSpace(
-                        c.TelegramChatId))
-                .ToListAsync(cancellationToken);
 
-            if (configuracoes.Count == 0)
-            {
-                _logger.LogInformation(
-                    "Nenhuma configuração ativa encontrada para o robô.");
+            // ==========================================
+            // ATIVO ANALISADO
+            // ==========================================
+            //
+            // A análise acontece independentemente
+            // de existir usuário com Telegram ativo.
+            //
+            // Assim, a página Analisar sempre poderá
+            // receber a última análise feita pelo robô.
+            // ==========================================
 
-                return;
-            }
-
-            const string simbolo = "EUR/USD";
+            const string simbolo =
+                "EUR/USD";
 
             ResultadoAnalise resultado;
 
             try
             {
                 _logger.LogInformation(
-                    "Iniciando análise automática de {Simbolo} para {QuantidadeUsuarios} usuário(s).",
-                    simbolo,
-                    configuracoes.Count);
+                    "Iniciando análise automática de {Simbolo}.",
+                    simbolo);
 
                 resultado =
                     await analiseMercadoService
-                        .AnalisarAsync(simbolo);
+                        .AnalisarAsync(
+                            simbolo);
+
+                // Guarda sempre a análise mais recente
+                // realizada pelo robô.
+                //
+                // Isso inclui COMPRAR, VENDER e AGUARDAR.
+                //
+                // A página Analisar consulta este resultado
+                // sem fazer uma nova chamada à Twelve Data.
+                _ultimaAnaliseService.Atualizar(
+                    resultado);
 
                 _logger.LogInformation(
-                    "Análise concluída. {Simbolo} - {Direcao} - {Pontuacao}/100.",
+                    "Última análise de {Simbolo} atualizada na memória.",
+                    resultado.Simbolo);
+
+                _logger.LogInformation(
+                    "Análise concluída. {Simbolo} - {Direcao} - {Forca} - {Pontuacao}/100.",
                     resultado.Simbolo,
                     resultado.Direcao,
+                    resultado.Forca,
                     resultado.Pontuacao);
             }
             catch (Exception ex)
@@ -409,6 +400,11 @@ namespace VisaoDeAguia.Services
                 return;
             }
 
+
+            // ==========================================
+            // SOMENTE SINAIS CONFIRMADOS
+            // ==========================================
+
             if (resultado.Direcao != "COMPRAR" &&
                 resultado.Direcao != "VENDER")
             {
@@ -419,10 +415,61 @@ namespace VisaoDeAguia.Services
                 return;
             }
 
+            if (resultado.Forca != "FORTE" &&
+                resultado.Forca != "MODERADO")
+            {
+                _logger.LogInformation(
+                    "Sinal de {Simbolo} sem força mínima para envio.",
+                    resultado.Simbolo);
+
+                return;
+            }
+
+
+            // ==========================================
+            // USUÁRIOS COM TELEGRAM CONFIGURADO
+            // ==========================================
+            //
+            // Somente depois da análise e da confirmação
+            // do sinal buscamos quem deve recebê-lo.
+            //
+            // A ausência de Telegram não impede mais
+            // a análise automática.
+            // ==========================================
+
+            var configuracoes =
+                await context.ConfiguracoesRobo
+                    .AsNoTracking()
+                    .Where(c =>
+                        c.TelegramAtivo &&
+                        c.AnalisarForex &&
+                        !string.IsNullOrWhiteSpace(
+                            c.TelegramBotToken) &&
+                        !string.IsNullOrWhiteSpace(
+                            c.TelegramChatId))
+                    .ToListAsync(
+                        cancellationToken);
+
+            if (configuracoes.Count == 0)
+            {
+                _logger.LogInformation(
+                    "Análise realizada, mas não há configurações ativas de Telegram para receber o sinal.");
+
+                return;
+            }
+
+
+            // ==========================================
+            // ENVIO PARA OS USUÁRIOS
+            // ==========================================
+
             foreach (var configuracao in configuracoes)
             {
-                if (cancellationToken.IsCancellationRequested)
+                if (cancellationToken
+                    .IsCancellationRequested)
+                {
                     break;
+                }
 
                 try
                 {
@@ -443,6 +490,11 @@ namespace VisaoDeAguia.Services
             }
         }
 
+
+        // ==========================================
+        // PROCESSAMENTO POR USUÁRIO
+        // ==========================================
+
         private async Task ProcessarUsuarioAsync(
             AppDbContext context,
             ITelegramService telegramService,
@@ -450,25 +502,29 @@ namespace VisaoDeAguia.Services
             ResultadoAnalise resultado,
             CancellationToken cancellationToken)
         {
-            // Agora o robô trabalha somente com Forex.
+            // O robô atualmente trabalha somente
+            // com Forex.
             if (!configuracao.AnalisarForex)
                 return;
 
-            if (resultado.Pontuacao <
-                configuracao.PontuacaoMinima)
-            {
-                return;
-            }
 
-            if (resultado.Forca == "FORTE" &&
-                !configuracao.ReceberSinalForte)
-            {
-                return;
-            }
+            // ==========================================
+            // VALIDAÇÃO DO SINAL
+            // ==========================================
+            //
+            // Não usamos mais:
+            //
+            // PontuacaoMinima
+            // ReceberSinalForte
+            // ReceberSinalModerado
+            //
+            // A classificação agora é definida
+            // globalmente pela estratégia configurada
+            // no appsettings.json.
+            // ==========================================
 
-            if (resultado.Forca == "MODERADO" &&
-                !configuracao
-                    .ReceberSinalModerado)
+            if (resultado.Direcao != "COMPRAR" &&
+                resultado.Direcao != "VENDER")
             {
                 return;
             }
@@ -479,11 +535,19 @@ namespace VisaoDeAguia.Services
                 return;
             }
 
-            // Converte o horário da vela para UTC uma única vez.
-            // Esse mesmo valor é usado na consulta e na gravação.
+
+            // ==========================================
+            // IDENTIFICAÇÃO DA VELA
+            // ==========================================
+
             var dataHoraVelaUtc =
                 ConverterHorarioLocalParaUtc(
                     resultado.DataHora);
+
+
+            // ==========================================
+            // PROTEÇÃO CONTRA DUPLICIDADE
+            // ==========================================
 
             var sinalJaEnviado =
                 await context.SinaisEnviados
@@ -503,10 +567,16 @@ namespace VisaoDeAguia.Services
             if (sinalJaEnviado)
             {
                 _logger.LogInformation(
-                    "Sinal já enviado anteriormente. Duplicação ignorada.");
+                    "Sinal já enviado anteriormente para {UsuarioId}. Duplicação ignorada.",
+                    configuracao.UsuarioId);
 
                 return;
             }
+
+
+            // ==========================================
+            // MENSAGEM TELEGRAM
+            // ==========================================
 
             var mensagem =
                 MontarMensagemTelegram(
@@ -530,6 +600,11 @@ namespace VisaoDeAguia.Services
 
                 return;
             }
+
+
+            // ==========================================
+            // REGISTRO DO SINAL
+            // ==========================================
 
             var sinal =
                 new SinalEnviado
@@ -584,6 +659,11 @@ namespace VisaoDeAguia.Services
             }
         }
 
+
+        // ==========================================
+        // CONVERSÃO DE HORÁRIO
+        // ==========================================
+
         private DateTime ConverterHorarioLocalParaUtc(
             DateTime horarioLocal)
         {
@@ -600,6 +680,11 @@ namespace VisaoDeAguia.Services
                 horarioSemFuso,
                 fuso);
         }
+
+
+        // ==========================================
+        // MENSAGEM DO TELEGRAM
+        // ==========================================
 
         private static string
             MontarMensagemTelegram(
@@ -619,6 +704,11 @@ namespace VisaoDeAguia.Services
                     resultado.Direcao,
                     "COMPRAR",
                     StringComparison.OrdinalIgnoreCase);
+
+
+            // ==========================================
+            // DISTÂNCIA DO NÍVEL CONTRÁRIO
+            // ==========================================
 
             var distanciaSuporte =
                 Math.Abs(
@@ -650,10 +740,15 @@ namespace VisaoDeAguia.Services
                         : "🟡 Suporte próximo"
                     : "🟢 Espaço até o nível contrário";
 
+
+            // ==========================================
+            // CLASSIFICAÇÃO
+            // ==========================================
+
             var classificacao =
                 nivelProximo
                     ? "🟡 ATENÇÃO"
-                    : resultado.Pontuacao >= 85
+                    : resultado.Forca == "FORTE"
                         ? "🟢 FAVORÁVEL"
                         : "🟡 ATENÇÃO";
 
@@ -662,11 +757,95 @@ namespace VisaoDeAguia.Services
                     ? "🟢"
                     : "🔴";
 
+
+            // ==========================================
+            // MÉDIAS
+            // ==========================================
+
+            string leituraMedias;
+
+            if (resultado.MediasConfirmamCompra)
+            {
+                leituraMedias =
+                    "🟢 Alinhadas para compra";
+            }
+            else if (resultado.MediasConfirmamVenda)
+            {
+                leituraMedias =
+                    "🔴 Alinhadas para venda";
+            }
+            else
+            {
+                leituraMedias =
+                    "🟡 Sem alinhamento completo";
+            }
+
+
+            // ==========================================
+            // RSI
+            // ==========================================
+
+            var leituraRsi =
+                resultado.SituacaoRsi switch
+                {
+                    "Compra" =>
+                        "🟢 Compra",
+
+                    "Venda" =>
+                        "🔴 Venda",
+
+                    _ =>
+                        "🟡 Neutro"
+                };
+
+
+            // ==========================================
+            // MACD
+            // ==========================================
+
+            var leituraMacd =
+                resultado.SituacaoMacd switch
+                {
+                    "Compra" =>
+                        "🟢 Compra",
+
+                    "Venda" =>
+                        "🔴 Venda",
+
+                    _ =>
+                        "🟡 Neutro"
+                };
+
+
+            // ==========================================
+            // BOLLINGER
+            // ==========================================
+
+            var leituraBollinger =
+                resultado.SituacaoBollinger5M switch
+                {
+                    "Compra" =>
+                        "🟢 Compra",
+
+                    "Venda" =>
+                        "🔴 Venda",
+
+                    _ =>
+                        "🟡 Neutro"
+                };
+
+
+            // ==========================================
+            // MENSAGEM FINAL
+            // ==========================================
+
             return
                 "🦅 VISÃO DE ÁGUIA\n\n" +
+
                 $"{emojiDirecao} {resultado.Simbolo} • {resultado.Direcao}\n" +
                 $"⭐ {resultado.Forca} • {resultado.Pontuacao}/100\n" +
                 $"💰 {resultado.PrecoAtual:0.########}\n\n" +
+
 
                 "📊 CONTEXTO\n" +
                 $"📈 2H: {resultado.Tendencia2H}\n" +
@@ -675,14 +854,32 @@ namespace VisaoDeAguia.Services
                 $"🔄 15M: {resultado.Pullback15M}\n" +
                 $"⚡ 5M: {resultado.Confirmacao5M}\n\n" +
 
+
+                "📐 INDICADORES\n" +
+                $"〽️ Médias 10/50/200: {leituraMedias}\n" +
+                $"📊 RSI 5M: {resultado.Rsi14_5M:F1}\n" +
+                $"📊 RSI 15M: {resultado.Rsi14_15M:F1}\n" +
+                $"➡️ RSI: {leituraRsi}\n" +
+                $"📉 MACD: {leituraMacd}\n" +
+                $"📶 Bollinger: {leituraBollinger}\n\n" +
+
+
+                "📍 MÉDIAS 5M\n" +
+                $"MA10: {resultado.Media10_5M:0.########}\n" +
+                $"MA50: {resultado.Media50_5M:0.########}\n" +
+                $"MA200: {resultado.Media200_5M:0.########}\n\n" +
+
+
                 "🎯 NÍVEIS\n" +
                 $"🛡️ Suporte: {resultado.Suporte:0.########}\n" +
                 $"🚧 Resistência: {resultado.Resistencia:0.########}\n" +
                 $"{leituraRegiao}\n\n" +
 
+
                 "⏱️ TIMING\n" +
                 $"🕐 M5: {horarioVela:HH:mm}\n" +
                 $"⏳ Referência: {inicioReferencia:HH:mm} - {fimReferencia:HH:mm}\n\n" +
+
 
                 $"🎯 {classificacao}";
         }

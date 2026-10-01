@@ -16,84 +16,182 @@ namespace VisaoDeAguia.Controllers
         private readonly ITelegramService _telegramService;
         private readonly AppDbContext _context;
         private readonly UserManager<Usuario> _userManager;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<AnaliseController> _logger;
+        private readonly IUltimaAnaliseService _ultimaAnaliseService;
+
+        private TimeZoneInfo? _fusoHorario;
 
         public AnaliseController(
             IAnaliseMercadoService analiseMercadoService,
             ITelegramService telegramService,
             AppDbContext context,
             UserManager<Usuario> userManager,
-            ILogger<AnaliseController> logger)
+            IConfiguration configuration,
+            ILogger<AnaliseController> logger,
+            IUltimaAnaliseService ultimaAnaliseService)
         {
             _analiseMercadoService = analiseMercadoService;
             _telegramService = telegramService;
             _context = context;
             _userManager = userManager;
+            _configuration = configuration;
             _logger = logger;
+            _ultimaAnaliseService = ultimaAnaliseService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
             try
             {
+                // ==========================================
+                // ÚLTIMA ANÁLISE AUTOMÁTICA DO ROBÔ
+                // ==========================================
+                //
+                // IMPORTANTE:
+                //
+                // A página Analisar não executa mais
+                // uma nova consulta à Twelve Data.
+                //
+                // Ela apenas exibe a última análise
+                // realizada automaticamente pelo robô.
+                //
+                // Portanto:
+                //
+                // - clicar em Analisar não consome API;
+                // - atualizar a página não consome API;
+                // - vários usuários podem visualizar
+                //   a mesma análise sem novas consultas.
+                // ==========================================
+
                 var resultado =
-                    await _analiseMercadoService.AnalisarAsync(
-                        "EUR/USD");
+                    _ultimaAnaliseService.Obter();
 
-                await TentarEnviarTelegramAsync(resultado);
+                if (resultado != null)
+                {
+                    _logger.LogInformation(
+                        "Última análise automática exibida na tela. {Simbolo} - {Direcao} - {Forca} - {Pontuacao}/100 - Vela: {DataHora}.",
+                        resultado.Simbolo,
+                        resultado.Direcao,
+                        resultado.Forca,
+                        resultado.Pontuacao,
+                        resultado.DataHora);
 
-                return View(resultado);
+                    return View(resultado);
+                }
+
+
+                // ==========================================
+                // AINDA NÃO EXISTE ANÁLISE NA MEMÓRIA
+                // ==========================================
+                //
+                // Isso pode acontecer após:
+                //
+                // - iniciar a aplicação;
+                // - fazer um novo deploy;
+                // - reiniciar o Railway;
+                // - antes do próximo ciclo de 5 minutos;
+                // - fora do horário de funcionamento.
+                //
+                // Não fazemos uma análise manual como
+                // fallback para evitar consumo adicional
+                // da Twelve Data.
+                // ==========================================
+
+                ViewBag.Erro =
+                    "Ainda não existe uma análise automática disponível. " +
+                    "Aguarde a próxima análise realizada pelo robô.";
+
+                return View(
+                    new ResultadoAnalise
+                    {
+                        Simbolo = "EUR/USD",
+                        Direcao = "AGUARDAR",
+                        Forca = "SEM SINAL",
+                        Pontuacao = 0
+                    });
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "Erro ao executar análise de mercado.");
+                    "Erro ao carregar a última análise automática.");
 
-                ViewBag.Erro = ex.Message;
+                ViewBag.Erro =
+                    "Não foi possível carregar a última análise automática.";
 
-                return View(new ResultadoAnalise
-                {
-                    Simbolo = "EUR/USD",
-                    Direcao = "AGUARDAR",
-                    Forca = "SEM SINAL",
-                    Pontuacao = 0
-                });
+                return View(
+                    new ResultadoAnalise
+                    {
+                        Simbolo = "EUR/USD",
+                        Direcao = "AGUARDAR",
+                        Forca = "SEM SINAL",
+                        Pontuacao = 0
+                    });
             }
         }
+
+
+        // ==========================================
+        // ENVIO MANUAL PARA O TELEGRAM
+        // ==========================================
+        //
+        // Este método foi mantido para preservar
+        // a estrutura original do controller.
+        //
+        // O Index não chama mais este método.
+        //
+        // O envio automático dos sinais continua
+        // sendo responsabilidade do robô.
+        // ==========================================
 
         private async Task TentarEnviarTelegramAsync(
             ResultadoAnalise resultado)
         {
             try
             {
-                // Não envia quando não existe sinal.
+                // Somente sinais efetivamente confirmados.
                 if (resultado.Direcao != "COMPRAR" &&
                     resultado.Direcao != "VENDER")
                 {
                     return;
                 }
 
-                var usuarioId = _userManager.GetUserId(User);
-
-                if (string.IsNullOrWhiteSpace(usuarioId))
+                // A força mínima agora é determinada
+                // globalmente pela estratégia.
+                if (resultado.Forca != "FORTE" &&
+                    resultado.Forca != "MODERADO")
+                {
                     return;
+                }
+
+                var usuarioId =
+                    _userManager.GetUserId(User);
+
+                if (string.IsNullOrWhiteSpace(
+                        usuarioId))
+                {
+                    return;
+                }
 
                 var configuracao =
                     await _context.ConfiguracoesRobo
                         .AsNoTracking()
                         .FirstOrDefaultAsync(
-                            c => c.UsuarioId == usuarioId);
+                            c =>
+                                c.UsuarioId ==
+                                usuarioId);
 
                 if (configuracao == null)
                     return;
 
-                // Telegram precisa estar ativado.
                 if (!configuracao.TelegramAtivo)
                     return;
 
-                // Token e Chat ID precisam estar configurados.
+                if (!configuracao.AnalisarForex)
+                    return;
+
                 if (string.IsNullOrWhiteSpace(
                         configuracao.TelegramBotToken) ||
                     string.IsNullOrWhiteSpace(
@@ -102,42 +200,33 @@ namespace VisaoDeAguia.Controllers
                     return;
                 }
 
-                // Respeita a pontuação mínima.
-                if (resultado.Pontuacao <
-                    configuracao.PontuacaoMinima)
-                {
-                    return;
-                }
 
-                // Respeita os tipos de sinais escolhidos.
-                if (resultado.Forca == "FORTE" &&
-                    !configuracao.ReceberSinalForte)
-                {
-                    return;
-                }
+                // ==========================================
+                // HORÁRIO DA VELA EM UTC
+                // ==========================================
 
-                if (resultado.Forca == "MODERADO" &&
-                    !configuracao.ReceberSinalModerado)
-                {
-                    return;
-                }
+                var dataHoraVelaUtc =
+                    ConverterHorarioLocalParaUtc(
+                        resultado.DataHora);
 
-                if (resultado.Forca != "FORTE" &&
-                    resultado.Forca != "MODERADO")
-                {
-                    return;
-                }
 
-                // Verifica se este mesmo sinal desta mesma
-                // vela já foi enviado para este usuário.
+                // ==========================================
+                // PROTEÇÃO CONTRA DUPLICIDADE
+                // ==========================================
+
                 var sinalJaEnviado =
                     await _context.SinaisEnviados
                         .AsNoTracking()
-                        .AnyAsync(s =>
-                            s.UsuarioId == usuarioId &&
-                            s.Simbolo == resultado.Simbolo &&
-                            s.Direcao == resultado.Direcao &&
-                            s.DataHoraVela == resultado.DataHora);
+                        .AnyAsync(
+                            s =>
+                                s.UsuarioId ==
+                                    usuarioId &&
+                                s.Simbolo ==
+                                    resultado.Simbolo &&
+                                s.Direcao ==
+                                    resultado.Direcao &&
+                                s.DataHoraVela ==
+                                    dataHoraVelaUtc);
 
                 if (sinalJaEnviado)
                 {
@@ -146,19 +235,26 @@ namespace VisaoDeAguia.Controllers
                         usuarioId,
                         resultado.Simbolo,
                         resultado.Direcao,
-                        resultado.DataHora);
+                        dataHoraVelaUtc);
 
                     return;
                 }
 
+
+                // ==========================================
+                // MENSAGEM
+                // ==========================================
+
                 var mensagem =
-                    MontarMensagemTelegram(resultado);
+                    MontarMensagemTelegram(
+                        resultado);
 
                 var envio =
-                    await _telegramService.EnviarMensagemAsync(
-                        configuracao.TelegramBotToken,
-                        configuracao.TelegramChatId,
-                        mensagem);
+                    await _telegramService
+                        .EnviarMensagemAsync(
+                            configuracao.TelegramBotToken,
+                            configuracao.TelegramChatId,
+                            mensagem);
 
                 if (!envio.Sucesso)
                 {
@@ -169,57 +265,259 @@ namespace VisaoDeAguia.Controllers
                     return;
                 }
 
-                // Só registra no banco depois que o Telegram
-                // confirmar que a mensagem foi enviada.
-                var sinalEnviado = new SinalEnviado
+
+                // ==========================================
+                // REGISTRO DO SINAL
+                // ==========================================
+
+                var sinalEnviado =
+                    new SinalEnviado
+                    {
+                        UsuarioId =
+                            usuarioId,
+
+                        Simbolo =
+                            resultado.Simbolo,
+
+                        Direcao =
+                            resultado.Direcao,
+
+                        Forca =
+                            resultado.Forca,
+
+                        Pontuacao =
+                            resultado.Pontuacao,
+
+                        Preco =
+                            resultado.PrecoAtual,
+
+                        DataHoraVela =
+                            dataHoraVelaUtc,
+
+                        DataEnvio =
+                            DateTime.UtcNow
+                    };
+
+                _context.SinaisEnviados.Add(
+                    sinalEnviado);
+
+                try
                 {
-                    UsuarioId = usuarioId,
-                    Simbolo = resultado.Simbolo,
-                    Direcao = resultado.Direcao,
-                    Forca = resultado.Forca,
-                    Pontuacao = resultado.Pontuacao,
-                    Preco = resultado.PrecoAtual,
-                    DataHoraVela = resultado.DataHora,
-                    DataEnvio = DateTime.UtcNow
-                };
+                    await _context.SaveChangesAsync();
 
-                _context.SinaisEnviados.Add(sinalEnviado);
+                    _logger.LogInformation(
+                        "Sinal {Direcao} de {Simbolo} enviado ao Telegram e registrado no histórico.",
+                        resultado.Direcao,
+                        resultado.Simbolo);
+                }
+                catch (DbUpdateException ex)
+                {
+                    _context.Entry(
+                        sinalEnviado).State =
+                        EntityState.Detached;
 
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "Sinal {Direcao} de {Simbolo} enviado ao Telegram e registrado no histórico.",
-                    resultado.Direcao,
-                    resultado.Simbolo);
-            }
-            catch (DbUpdateException ex)
-            {
-                // O índice único do banco também protege
-                // contra tentativas simultâneas de duplicação.
-                _logger.LogWarning(
-                    ex,
-                    "O sinal já foi registrado ou ocorreu conflito ao salvar o histórico.");
+                    _logger.LogWarning(
+                        ex,
+                        "Sinal duplicado ignorado ao salvar o histórico.");
+                }
             }
             catch (Exception ex)
             {
-                // Uma falha no Telegram ou no histórico não deve
-                // impedir que a análise apareça na tela.
+                // Uma falha no Telegram ou histórico
+                // não impede a análise de aparecer na tela.
                 _logger.LogError(
                     ex,
                     "Erro durante o envio do sinal ao Telegram.");
             }
         }
 
+
+        // ==========================================
+        // FUSO HORÁRIO
+        // ==========================================
+
+        private TimeZoneInfo ObterFusoHorario()
+        {
+            if (_fusoHorario != null)
+                return _fusoHorario;
+
+            var fusoConfigurado =
+                _configuration[
+                    "RoboMercado:FusoHorario"];
+
+            if (string.IsNullOrWhiteSpace(
+                    fusoConfigurado))
+            {
+                fusoConfigurado =
+                    "America/Sao_Paulo";
+            }
+
+            try
+            {
+                _fusoHorario =
+                    TimeZoneInfo
+                        .FindSystemTimeZoneById(
+                            fusoConfigurado);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    _fusoHorario =
+                        TimeZoneInfo
+                            .FindSystemTimeZoneById(
+                                "E. South America Standard Time");
+                }
+                catch
+                {
+                    _logger.LogWarning(
+                        "Não foi possível localizar o fuso {Fuso}. UTC será utilizado.",
+                        fusoConfigurado);
+
+                    _fusoHorario =
+                        TimeZoneInfo.Utc;
+                }
+            }
+            catch (InvalidTimeZoneException)
+            {
+                _logger.LogWarning(
+                    "O fuso horário {Fuso} é inválido. UTC será utilizado.",
+                    fusoConfigurado);
+
+                _fusoHorario =
+                    TimeZoneInfo.Utc;
+            }
+
+            return _fusoHorario;
+        }
+
+        private DateTime ConverterHorarioLocalParaUtc(
+            DateTime horarioLocal)
+        {
+            var fuso =
+                ObterFusoHorario();
+
+            var horarioSemFuso =
+                DateTime.SpecifyKind(
+                    horarioLocal,
+                    DateTimeKind.Unspecified);
+
+            return TimeZoneInfo.ConvertTimeToUtc(
+                horarioSemFuso,
+                fuso);
+        }
+
+
+        // ==========================================
+        // MENSAGEM DO TELEGRAM
+        // ==========================================
+
         private static string MontarMensagemTelegram(
             ResultadoAnalise resultado)
         {
-            var mensagem = new StringBuilder();
+            var mensagem =
+                new StringBuilder();
 
-            mensagem.AppendLine("🦅 VISÃO DE ÁGUIA");
+            var direcaoCompra =
+                string.Equals(
+                    resultado.Direcao,
+                    "COMPRAR",
+                    StringComparison.OrdinalIgnoreCase);
+
+            var emojiDirecao =
+                direcaoCompra
+                    ? "🟢"
+                    : "🔴";
+
+
+            // ==========================================
+            // MÉDIAS
+            // ==========================================
+
+            string leituraMedias;
+
+            if (resultado.MediasConfirmamCompra)
+            {
+                leituraMedias =
+                    "🟢 COMPRA";
+            }
+            else if (resultado.MediasConfirmamVenda)
+            {
+                leituraMedias =
+                    "🔴 VENDA";
+            }
+            else
+            {
+                leituraMedias =
+                    "🟡 NEUTRO";
+            }
+
+
+            // ==========================================
+            // RSI
+            // ==========================================
+
+            var leituraRsi =
+                resultado.SituacaoRsi switch
+                {
+                    "Compra" =>
+                        "🟢 COMPRA",
+
+                    "Venda" =>
+                        "🔴 VENDA",
+
+                    _ =>
+                        "🟡 NEUTRO"
+                };
+
+
+            // ==========================================
+            // MACD
+            // ==========================================
+
+            var leituraMacd =
+                resultado.SituacaoMacd switch
+                {
+                    "Compra" =>
+                        "🟢 COMPRA",
+
+                    "Venda" =>
+                        "🔴 VENDA",
+
+                    _ =>
+                        "🟡 NEUTRO"
+                };
+
+
+            // ==========================================
+            // BOLLINGER
+            // ==========================================
+
+            var leituraBollinger =
+                resultado.SituacaoBollinger5M switch
+                {
+                    "Compra" =>
+                        "🟢 COMPRA",
+
+                    "Venda" =>
+                        "🔴 VENDA",
+
+                    _ =>
+                        "🟡 NEUTRO"
+                };
+
+
+            // ==========================================
+            // CABEÇALHO
+            // ==========================================
+
+            mensagem.AppendLine(
+                "🦅 VISÃO DE ÁGUIA");
+
             mensagem.AppendLine();
 
             mensagem.AppendLine(
-                $"🚨 SINAL {resultado.Simbolo}");
+                $"{emojiDirecao} SINAL {resultado.Simbolo}");
 
             mensagem.AppendLine();
 
@@ -237,22 +535,85 @@ namespace VisaoDeAguia.Controllers
 
             mensagem.AppendLine();
 
-            mensagem.AppendLine(
-                $"📈 Tendência 2H: {resultado.Tendencia2H}");
+
+            // ==========================================
+            // CONTEXTO
+            // ==========================================
 
             mensagem.AppendLine(
-                $"📈 Tendência 1H: {resultado.Tendencia1H}");
+                "📊 CONTEXTO");
 
             mensagem.AppendLine(
-                $"📊 Estrutura 30M: {resultado.Estrutura30M}");
+                $"📈 2H: {resultado.Tendencia2H}");
 
             mensagem.AppendLine(
-                $"🔄 Pullback 15M: {resultado.Pullback15M}");
+                $"📈 1H: {resultado.Tendencia1H}");
 
             mensagem.AppendLine(
-                $"⚡ Confirmação 5M: {resultado.Confirmacao5M}");
+                $"📊 30M: {resultado.Estrutura30M}");
+
+            mensagem.AppendLine(
+                $"🔄 15M: {resultado.Pullback15M}");
+
+            mensagem.AppendLine(
+                $"⚡ 5M: {resultado.Confirmacao5M}");
 
             mensagem.AppendLine();
+
+
+            // ==========================================
+            // INDICADORES
+            // ==========================================
+
+            mensagem.AppendLine(
+                "📐 INDICADORES");
+
+            mensagem.AppendLine(
+                $"〽️ Médias 10/50/200: {leituraMedias}");
+
+            mensagem.AppendLine(
+                $"📊 RSI 5M: {resultado.Rsi14_5M:0.00}");
+
+            mensagem.AppendLine(
+                $"📊 RSI 15M: {resultado.Rsi14_15M:0.00}");
+
+            mensagem.AppendLine(
+                $"➡️ RSI: {leituraRsi}");
+
+            mensagem.AppendLine(
+                $"📉 MACD: {leituraMacd}");
+
+            mensagem.AppendLine(
+                $"📶 Bollinger: {leituraBollinger}");
+
+            mensagem.AppendLine();
+
+
+            // ==========================================
+            // MÉDIAS 5M
+            // ==========================================
+
+            mensagem.AppendLine(
+                "📍 MÉDIAS 5M");
+
+            mensagem.AppendLine(
+                $"EMA 10: {resultado.Media10_5M:0.########}");
+
+            mensagem.AppendLine(
+                $"EMA 50: {resultado.Media50_5M:0.########}");
+
+            mensagem.AppendLine(
+                $"EMA 200: {resultado.Media200_5M:0.########}");
+
+            mensagem.AppendLine();
+
+
+            // ==========================================
+            // NÍVEIS
+            // ==========================================
+
+            mensagem.AppendLine(
+                "🎯 NÍVEIS");
 
             mensagem.AppendLine(
                 $"🛡️ Suporte: {resultado.Suporte:0.########}");
@@ -262,13 +623,18 @@ namespace VisaoDeAguia.Controllers
 
             mensagem.AppendLine();
 
+
+            // ==========================================
+            // HORÁRIO
+            // ==========================================
+
             mensagem.AppendLine(
                 $"🕐 Vela: {resultado.DataHora:dd/MM/yyyy HH:mm}");
 
             mensagem.AppendLine();
 
             mensagem.AppendLine(
-                "⚠️ Sinal gerado automaticamente pelo Visão de Águia.");
+                "⚠️ Sinal gerado pelo Visão de Águia.");
 
             return mensagem.ToString();
         }
