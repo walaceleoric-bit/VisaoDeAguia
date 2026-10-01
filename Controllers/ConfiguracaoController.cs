@@ -25,190 +25,162 @@ namespace VisaoDeAguia.Controllers
             _telegramService = telegramService;
         }
 
+        // ==========================================
+        // CONFIGURAÇÃO DO TELEGRAM
+        // ==========================================
+
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var usuarioId = _userManager.GetUserId(User);
+            var usuarioId =
+                _userManager.GetUserId(User);
 
             if (string.IsNullOrWhiteSpace(usuarioId))
-                return RedirectToAction("Login", "Conta");
+            {
+                return RedirectToAction(
+                    "Login",
+                    "Conta");
+            }
 
-            var configuracao = await _context.ConfiguracoesRobo
-                .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+            var configuracao =
+                await _context.ConfiguracoesRobo
+                    .FirstOrDefaultAsync(
+                        c => c.UsuarioId == usuarioId);
 
             if (configuracao == null)
             {
-                configuracao = new ConfiguracaoRobo
-                {
-                    UsuarioId = usuarioId,
-                    TelegramAtivo = false,
-                    AnalisarForex = true,
-                    AnalisarAcoes = true,
-                    AnalisarCriptomoedas = true,
-                    ReceberSinalForte = true,
-                    ReceberSinalModerado = false,
-                    PontuacaoMinima = 80,
+                configuracao =
+                    new ConfiguracaoRobo
+                    {
+                        UsuarioId = usuarioId,
 
-                    // Horário padrão
-                    HorarioInicio = new TimeSpan(8, 30, 0),
-                    HorarioFim = new TimeSpan(11, 0, 0)
-                };
+                        TelegramAtivo = false,
+
+                        AnalisarForex = true,
+                        AnalisarAcoes = false,
+                        AnalisarCriptomoedas = false,
+
+                        ReceberSinalForte = true,
+                        ReceberSinalModerado = true,
+
+                        PontuacaoMinima = 0,
+
+                        HorarioInicio =
+                            new TimeSpan(8, 30, 0),
+
+                        HorarioFim =
+                            new TimeSpan(11, 0, 0)
+                    };
             }
             else
             {
-                // Não envia o Token salvo para a tela.
-                // O campo fica vazio por segurança.
+                // Por segurança, nunca mostramos
+                // novamente o token salvo.
                 configuracao.TelegramBotToken = null;
             }
 
             return View(configuracao);
         }
 
+        // ==========================================
+        // SALVAR TELEGRAM
+        // ==========================================
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(ConfiguracaoRobo model)
+        public async Task<IActionResult> Index(
+            ConfiguracaoRobo model)
         {
-            var usuarioId = _userManager.GetUserId(User);
+            var usuarioId =
+                _userManager.GetUserId(User);
 
             if (string.IsNullOrWhiteSpace(usuarioId))
-                return RedirectToAction("Login", "Conta");
+            {
+                return RedirectToAction(
+                    "Login",
+                    "Conta");
+            }
 
-            model.UsuarioId = usuarioId;
-
-            ModelState.Remove(nameof(model.UsuarioId));
-            ModelState.Remove(nameof(model.Usuario));
-
-            var configuracao = await _context.ConfiguracoesRobo
-                .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+            var configuracao =
+                await _context.ConfiguracoesRobo
+                    .FirstOrDefaultAsync(
+                        c => c.UsuarioId == usuarioId);
 
             var tokenInformado =
-                !string.IsNullOrWhiteSpace(model.TelegramBotToken);
+                !string.IsNullOrWhiteSpace(
+                    model.TelegramBotToken);
 
             var tokenJaSalvo =
                 configuracao != null &&
                 !string.IsNullOrWhiteSpace(
                     configuracao.TelegramBotToken);
 
-            var chatIdInformado =
-                !string.IsNullOrWhiteSpace(model.TelegramChatId);
-
-            // ==============================
-            // VALIDAÇÃO DA PONTUAÇÃO
-            // ==============================
-
-            if (model.PontuacaoMinima < 0 ||
-                model.PontuacaoMinima > 100)
+            if (!tokenInformado &&
+                !tokenJaSalvo)
             {
-                ModelState.AddModelError(
-                    nameof(model.PontuacaoMinima),
-                    "A pontuação mínima deve estar entre 0 e 100.");
-            }
+                TempData["ErroTelegram"] =
+                    "Informe o Token do Bot do Telegram.";
 
-            // ==============================
-            // VALIDAÇÃO DO HORÁRIO DO ROBÔ
-            // ==============================
-
-            if (model.HorarioFim <= model.HorarioInicio)
-            {
-                ModelState.AddModelError(
-                    nameof(model.HorarioFim),
-                    "O horário de término deve ser depois do horário de início.");
-            }
-            else
-            {
-                var periodo =
-                    model.HorarioFim -
-                    model.HorarioInicio;
-
-                var limite =
-                    TimeSpan.FromMinutes(150);
-
-                if (periodo > limite)
-                {
-                    ModelState.AddModelError(
-                        nameof(model.HorarioFim),
-                        "O robô pode analisar por no máximo 2 horas e 30 minutos por dia.");
-                }
-            }
-
-            // ==============================
-            // VALIDAÇÃO DO TELEGRAM
-            // ==============================
-
-            if (model.TelegramAtivo)
-            {
-                if (!tokenInformado &&
-                    !tokenJaSalvo)
-                {
-                    ModelState.AddModelError(
-                        nameof(model.TelegramBotToken),
-                        "Informe o Token do Bot para ativar o Telegram.");
-                }
-
-                if (!chatIdInformado)
-                {
-                    ModelState.AddModelError(
-                        nameof(model.TelegramChatId),
-                        "Informe o Chat ID para ativar o Telegram.");
-                }
-            }
-
-            if (!ModelState.IsValid)
-            {
-                // Nunca devolvemos o Token salvo para a tela.
-                model.TelegramBotToken = null;
-
-                return View(model);
+                return RedirectToAction(
+                    nameof(Index));
             }
 
             if (configuracao == null)
             {
-                configuracao = new ConfiguracaoRobo
-                {
-                    UsuarioId = usuarioId
-                };
+                configuracao =
+                    new ConfiguracaoRobo
+                    {
+                        UsuarioId = usuarioId,
 
-                _context.ConfiguracoesRobo.Add(configuracao);
+                        TelegramAtivo = false,
+
+                        AnalisarForex = true,
+                        AnalisarAcoes = false,
+                        AnalisarCriptomoedas = false,
+
+                        ReceberSinalForte = true,
+                        ReceberSinalModerado = true,
+
+                        PontuacaoMinima = 0,
+
+                        HorarioInicio =
+                            new TimeSpan(8, 30, 0),
+
+                        HorarioFim =
+                            new TimeSpan(11, 0, 0)
+                    };
+
+                _context.ConfiguracoesRobo.Add(
+                    configuracao);
             }
 
-            // Só altera o Token se o usuário realmente
-            // informar um novo Token.
+            // Só troca o token quando o usuário
+            // realmente informar um novo.
             if (tokenInformado)
             {
                 configuracao.TelegramBotToken =
                     model.TelegramBotToken!.Trim();
             }
 
-            configuracao.TelegramChatId =
-                model.TelegramChatId?.Trim();
+            // O Chat ID pode ser preenchido
+            // automaticamente pela busca do grupo.
+            if (!string.IsNullOrWhiteSpace(
+                    model.TelegramChatId))
+            {
+                configuracao.TelegramChatId =
+                    model.TelegramChatId.Trim();
+            }
 
+            // Se já existe Chat ID, o Telegram
+            // pode ficar ativo.
             configuracao.TelegramAtivo =
-                model.TelegramAtivo;
+                !string.IsNullOrWhiteSpace(
+                    configuracao.TelegramBotToken) &&
+                !string.IsNullOrWhiteSpace(
+                    configuracao.TelegramChatId);
 
-            configuracao.AnalisarForex =
-                model.AnalisarForex;
-
-            configuracao.AnalisarAcoes =
-                model.AnalisarAcoes;
-
-            configuracao.AnalisarCriptomoedas =
-                model.AnalisarCriptomoedas;
-
-            configuracao.ReceberSinalForte =
-                model.ReceberSinalForte;
-
-            configuracao.ReceberSinalModerado =
-                model.ReceberSinalModerado;
-
-            configuracao.PontuacaoMinima =
-                model.PontuacaoMinima;
-
-            // Horário escolhido pelo usuário
-            configuracao.HorarioInicio =
-                model.HorarioInicio;
-
-            configuracao.HorarioFim =
-                model.HorarioFim;
+            // Mantemos o EUR/USD habilitado.
+            configuracao.AnalisarForex = true;
 
             configuracao.DataAtualizacao =
                 DateTime.UtcNow;
@@ -216,43 +188,61 @@ namespace VisaoDeAguia.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Sucesso"] =
-                "Configurações salvas com sucesso.";
+                string.IsNullOrWhiteSpace(
+                    configuracao.TelegramChatId)
+                    ? "Token do Telegram salvo. Agora adicione o bot ao grupo, envie uma mensagem no grupo e clique em Buscar Grupo."
+                    : "Configuração do Telegram salva com sucesso.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(
+                nameof(Index));
         }
+
+        // ==========================================
+        // BUSCAR GRUPO AUTOMATICAMENTE
+        // ==========================================
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> BuscarGrupo()
         {
-            var usuarioId = _userManager.GetUserId(User);
+            var usuarioId =
+                _userManager.GetUserId(User);
 
             if (string.IsNullOrWhiteSpace(usuarioId))
-                return RedirectToAction("Login", "Conta");
+            {
+                return RedirectToAction(
+                    "Login",
+                    "Conta");
+            }
 
-            var configuracao = await _context.ConfiguracoesRobo
-                .FirstOrDefaultAsync(c => c.UsuarioId == usuarioId);
+            var configuracao =
+                await _context.ConfiguracoesRobo
+                    .FirstOrDefaultAsync(
+                        c => c.UsuarioId == usuarioId);
 
             if (configuracao == null ||
                 string.IsNullOrWhiteSpace(
                     configuracao.TelegramBotToken))
             {
                 TempData["ErroTelegram"] =
-                    "Primeiro informe o Token do Bot e salve as configurações.";
+                    "Primeiro informe o Token do Bot e salve.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
 
             var grupos =
-                await _telegramService.BuscarGruposAsync(
-                    configuracao.TelegramBotToken);
+                await _telegramService
+                    .BuscarGruposAsync(
+                        configuracao.TelegramBotToken);
 
             if (grupos.Count == 0)
             {
                 TempData["ErroTelegram"] =
-                    "Nenhum grupo foi encontrado. Adicione o bot ao grupo e envie uma mensagem no grupo.";
+                    "Nenhum grupo foi encontrado. Adicione o bot ao grupo, envie uma mensagem no grupo e tente novamente.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
 
             if (grupos.Count == 1)
@@ -260,37 +250,51 @@ namespace VisaoDeAguia.Controllers
                 configuracao.TelegramChatId =
                     grupos[0].ChatId.ToString();
 
+                configuracao.TelegramAtivo = true;
+
                 configuracao.DataAtualizacao =
                     DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
                 TempData["Sucesso"] =
-                    $"Grupo \"{grupos[0].Nome}\" encontrado. Chat ID configurado automaticamente.";
+                    $"Grupo \"{grupos[0].Nome}\" encontrado. Telegram configurado e ativado automaticamente.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
 
             TempData["GruposTelegram"] =
                 grupos
                     .Select(
-                        g => $"{g.Nome} | {g.ChatId}")
+                        g =>
+                            $"{g.Nome} | {g.ChatId}")
                     .ToArray();
 
             TempData["ErroTelegram"] =
-                "Mais de um grupo foi encontrado. Vamos adicionar a seleção de grupo na próxima etapa.";
+                "Mais de um grupo foi encontrado. Deixe o bot somente no grupo desejado e tente novamente.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(
+                nameof(Index));
         }
+
+        // ==========================================
+        // TESTAR TELEGRAM
+        // ==========================================
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> TestarTelegram()
         {
-            var usuarioId = _userManager.GetUserId(User);
+            var usuarioId =
+                _userManager.GetUserId(User);
 
             if (string.IsNullOrWhiteSpace(usuarioId))
-                return RedirectToAction("Login", "Conta");
+            {
+                return RedirectToAction(
+                    "Login",
+                    "Conta");
+            }
 
             var configuracao =
                 await _context.ConfiguracoesRobo
@@ -302,7 +306,8 @@ namespace VisaoDeAguia.Controllers
                 TempData["ErroTelegram"] =
                     "Configuração do Telegram não encontrada.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
 
             if (string.IsNullOrWhiteSpace(
@@ -311,16 +316,18 @@ namespace VisaoDeAguia.Controllers
                 TempData["ErroTelegram"] =
                     "O Token do Bot não está configurado.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
 
             if (string.IsNullOrWhiteSpace(
                     configuracao.TelegramChatId))
             {
                 TempData["ErroTelegram"] =
-                    "O Chat ID do grupo não está configurado.";
+                    "O grupo do Telegram ainda não foi localizado.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(
+                    nameof(Index));
             }
 
             var mensagem =
@@ -329,13 +336,21 @@ namespace VisaoDeAguia.Controllers
                 "🤖 O sistema está pronto para enviar sinais.";
 
             var resultado =
-                await _telegramService.EnviarMensagemAsync(
-                    configuracao.TelegramBotToken,
-                    configuracao.TelegramChatId,
-                    mensagem);
+                await _telegramService
+                    .EnviarMensagemAsync(
+                        configuracao.TelegramBotToken,
+                        configuracao.TelegramChatId,
+                        mensagem);
 
             if (resultado.Sucesso)
             {
+                configuracao.TelegramAtivo = true;
+
+                configuracao.DataAtualizacao =
+                    DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
                 TempData["Sucesso"] =
                     "Mensagem de teste enviada para o Telegram com sucesso.";
             }
@@ -345,7 +360,8 @@ namespace VisaoDeAguia.Controllers
                     resultado.Mensagem;
             }
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(
+                nameof(Index));
         }
     }
 }

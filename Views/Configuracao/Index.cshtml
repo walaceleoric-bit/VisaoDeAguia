@@ -1,24 +1,26 @@
 ﻿@model VisaoDeAguia.Models.ConfiguracaoRobo
 
 @{
-    ViewData["Title"] = "Configuração";
+    ViewData["Title"] = "Telegram";
 }
 
 <div class="container py-5">
 
     <div class="mb-5">
+
         <span class="secao-label">
             VISÃO DE ÁGUIA
         </span>
 
         <h1 class="mt-2">
-            Configuração do Robô
+            Configuração do Telegram
         </h1>
 
         <p class="text-secondary">
-            Configure o recebimento e a qualidade dos sinais
-            analisados pelo sistema.
+            Configure o grupo que receberá os sinais
+            enviados pelo Visão de Águia.
         </p>
+
     </div>
 
     @if (TempData["Sucesso"] != null)
@@ -35,53 +37,35 @@
         </div>
     }
 
-    <form asp-controller="Configuracao"
-          asp-action="Index"
-          method="post">
+    <div class="painel-analise mb-4">
 
-        <div asp-validation-summary="ModelOnly"
-             class="alert alert-danger">
+        <div class="painel-topo">
+
+            <span>
+                TELEGRAM
+            </span>
+
+            @if (Model.TelegramAtivo &&
+                 !string.IsNullOrWhiteSpace(Model.TelegramChatId))
+            {
+                <span class="telegram-status telegram-status-ativo">
+                    ● CONFIGURADO
+                </span>
+            }
+            else
+            {
+                <span class="telegram-status telegram-status-pendente">
+                    ● AGUARDANDO CONFIGURAÇÃO
+                </span>
+            }
+
         </div>
 
-        <!-- Mantemos esses campos para compatibilidade
-             com a configuração atual do sistema. -->
-        <input type="hidden"
-               asp-for="AnalisarForex"
-               value="true" />
+        <form asp-controller="Configuracao"
+              asp-action="Index"
+              method="post">
 
-        <input type="hidden"
-               asp-for="AnalisarAcoes"
-               value="false" />
-
-        <input type="hidden"
-               asp-for="AnalisarCriptomoedas"
-               value="false" />
-
-        <!-- TELEGRAM -->
-        <div class="painel-analise mb-4">
-
-            <div class="painel-topo">
-                <span>TELEGRAM</span>
-                <span>NOTIFICAÇÕES DE SINAIS</span>
-            </div>
-
-            <div class="mb-4 mt-4">
-
-                <div class="form-check form-switch">
-
-                    <input asp-for="TelegramAtivo"
-                           class="form-check-input" />
-
-                    <label asp-for="TelegramAtivo"
-                           class="form-check-label">
-                        Ativar envio de sinais pelo Telegram
-                    </label>
-
-                </div>
-
-            </div>
-
-            <div class="mb-3">
+            <div class="mt-4 mb-4">
 
                 <label asp-for="TelegramBotToken"
                        class="form-label">
@@ -92,281 +76,195 @@
                        type="password"
                        class="form-control"
                        autocomplete="off"
-                       placeholder="Informe o token fornecido pelo BotFather" />
+                       placeholder="Cole aqui o token fornecido pelo BotFather" />
 
-                <div class="form-text text-secondary">
-                    O token identifica o bot que enviará as mensagens.
+                <div class="form-text text-secondary mt-2">
+                    Se você já salvou o token anteriormente,
+                    pode deixar este campo vazio.
                 </div>
 
             </div>
 
-            <div class="mb-3">
+            <input asp-for="TelegramChatId"
+                   type="hidden" />
 
-                <label asp-for="TelegramChatId"
-                       class="form-label">
-                    Chat ID / Grupo
-                </label>
+            @if (!string.IsNullOrWhiteSpace(Model.TelegramChatId))
+            {
+                <div class="telegram-grupo">
 
-                <input asp-for="TelegramChatId"
-                       class="form-control"
-                       autocomplete="off"
-                       placeholder="O sistema pode localizar automaticamente" />
+                    <div class="telegram-grupo-icone">
+                        ✓
+                    </div>
 
-                <div class="form-text text-secondary">
-                    Define para qual grupo os sinais serão enviados.
+                    <div>
+
+                        <span>
+                            GRUPO LOCALIZADO
+                        </span>
+
+                        <strong>
+                            Chat ID: @Model.TelegramChatId
+                        </strong>
+
+                    </div>
+
                 </div>
+            }
 
-            </div>
-
-            <div class="mt-4 d-flex flex-wrap gap-3">
+            <div class="d-flex flex-wrap gap-3 mt-4">
 
                 <button type="submit"
-                        form="formBuscarGrupo"
+                        class="btn-visao-principal border-0">
+                    Salvar Token
+                </button>
+
+            </div>
+
+        </form>
+
+        <div class="telegram-separador"></div>
+
+        <div class="telegram-instrucoes">
+
+            <span class="secao-label">
+                COMO CONFIGURAR
+            </span>
+
+            <ol>
+                <li>
+                    Crie ou utilize seu bot no Telegram e copie o token.
+                </li>
+
+                <li>
+                    Cole o token acima e clique em
+                    <strong>Salvar Token</strong>.
+                </li>
+
+                <li>
+                    Adicione o bot ao grupo que receberá os sinais.
+                </li>
+
+                <li>
+                    Envie qualquer mensagem dentro desse grupo.
+                </li>
+
+                <li>
+                    Clique em
+                    <strong>Buscar Grupo do Telegram</strong>.
+                </li>
+            </ol>
+
+        </div>
+
+        <div class="d-flex flex-wrap gap-3 mt-4">
+
+            <form asp-controller="Configuracao"
+                  asp-action="BuscarGrupo"
+                  method="post">
+
+                <button type="submit"
                         class="btn-visao-secundario">
                     Buscar Grupo do Telegram
                 </button>
 
+            </form>
+
+            <form asp-controller="Configuracao"
+                  asp-action="TestarTelegram"
+                  method="post">
+
                 <button type="submit"
-                        form="formTestarTelegram"
                         class="btn-visao-principal border-0">
                     Enviar Mensagem de Teste
                 </button>
 
-            </div>
-
-            <div class="form-text text-secondary mt-3">
-                Primeiro salve o Token do Bot. Depois adicione o bot
-                ao grupo, envie uma mensagem no grupo e use
-                "Buscar Grupo do Telegram".
-            </div>
+            </form>
 
         </div>
 
-        <!-- ATIVO MONITORADO -->
-        <div class="painel-analise mb-4">
-
-            <div class="painel-topo">
-                <span>ATIVO MONITORADO</span>
-                <span>FOREX</span>
-            </div>
-
-            <div class="row g-4 mt-1">
-
-                <div class="col-md-6">
-
-                    <span class="secao-label">
-                        PAR DE MOEDAS
-                    </span>
-
-                    <h3 class="mt-2 mb-1">
-                        EUR/USD
-                    </h3>
-
-                    <p class="text-secondary mb-0">
-                        Euro / Dólar Americano
-                    </p>
-
-                </div>
-
-                <div class="col-md-6">
-
-                    <span class="secao-label">
-                        ESTRATÉGIA
-                    </span>
-
-                    <h3 class="mt-2 mb-1">
-                        Multi-Timeframe
-                    </h3>
-
-                    <p class="text-secondary mb-0">
-                        2H → 1H → 30M → 15M → 5M
-                    </p>
-
-                </div>
-
-            </div>
-
-            <div class="form-text text-secondary mt-4">
-                O robô está configurado para monitorar exclusivamente
-                o EUR/USD e buscar oportunidades seguindo tendência,
-                pullback e confirmação de entrada.
-            </div>
-
-        </div>
-
-        <!-- HORÁRIO DAS ANÁLISES -->
-        <div class="painel-analise mb-4">
-
-            <div class="painel-topo">
-                <span>HORÁRIO DAS ANÁLISES</span>
-                <span>PERÍODO DIÁRIO</span>
-            </div>
-
-            <div class="mt-4">
-
-                <span class="secao-label">
-                    ESCOLHA O PERÍODO
-                </span>
-
-                <h3 class="mt-2 mb-2">
-                    Quando o robô deve analisar?
-                </h3>
-
-                <p class="text-secondary mb-4">
-                    Escolha o horário em que deseja receber as análises.
-                    O robô pode analisar o mercado por até
-                    <strong>2 horas e 30 minutos por dia.</strong>
-                </p>
-
-                <div class="row g-4">
-
-                    <div class="col-md-6">
-
-                        <label asp-for="HorarioInicio"
-                               class="form-label">
-                            Horário de início
-                        </label>
-
-                        <input asp-for="HorarioInicio"
-                               type="time"
-                               class="form-control" />
-
-                        <span asp-validation-for="HorarioInicio"
-                              class="text-danger">
-                        </span>
-
-                    </div>
-
-                    <div class="col-md-6">
-
-                        <label asp-for="HorarioFim"
-                               class="form-label">
-                            Horário de término
-                        </label>
-
-                        <input asp-for="HorarioFim"
-                               type="time"
-                               class="form-control" />
-
-                        <span asp-validation-for="HorarioFim"
-                              class="text-danger">
-                        </span>
-
-                    </div>
-
-                </div>
-
-                <div class="form-text text-secondary mt-3">
-                    Exemplo: das 08:30 às 11:00.
-                    Você pode escolher outro período, desde que
-                    não ultrapasse 2h30.
-                </div>
-
-            </div>
-
-        </div>
-
-        <!-- QUALIDADE DOS SINAIS -->
-        <div class="painel-analise mb-4">
-
-            <div class="painel-topo">
-                <span>QUALIDADE DOS SINAIS</span>
-                <span>FILTROS DO ROBÔ</span>
-            </div>
-
-            <div class="row g-4 mt-1">
-
-                <div class="col-md-6">
-
-                    <div class="form-check form-switch mb-3">
-
-                        <input asp-for="ReceberSinalForte"
-                               class="form-check-input" />
-
-                        <label asp-for="ReceberSinalForte"
-                               class="form-check-label">
-                            Receber sinais fortes
-                        </label>
-
-                    </div>
-
-                    <div class="form-check form-switch">
-
-                        <input asp-for="ReceberSinalModerado"
-                               class="form-check-input" />
-
-                        <label asp-for="ReceberSinalModerado"
-                               class="form-check-label">
-                            Receber sinais moderados
-                        </label>
-
-                    </div>
-
-                </div>
-
-                <div class="col-md-6">
-
-                    <label asp-for="PontuacaoMinima"
-                           class="form-label">
-                        Pontuação mínima do cenário
-                    </label>
-
-                    <div class="input-group">
-
-                        <input asp-for="PontuacaoMinima"
-                               type="number"
-                               min="0"
-                               max="100"
-                               class="form-control" />
-
-                        <span class="input-group-text">
-                            / 100
-                        </span>
-
-                    </div>
-
-                    <span asp-validation-for="PontuacaoMinima"
-                          class="text-danger">
-                    </span>
-
-                    <div class="form-text text-secondary">
-                        Quanto maior a pontuação,
-                        mais seletivo será o filtro.
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <!-- SALVAR -->
-        <div class="d-flex justify-content-end">
-
-            <button type="submit"
-                    class="btn-visao-principal border-0">
-                Salvar Configurações
-            </button>
-
-        </div>
-
-    </form>
-
-    <!-- BUSCAR GRUPO -->
-    <form id="formBuscarGrupo"
-          asp-controller="Configuracao"
-          asp-action="BuscarGrupo"
-          method="post">
-    </form>
-
-    <!-- TESTAR TELEGRAM -->
-    <form id="formTestarTelegram"
-          asp-controller="Configuracao"
-          asp-action="TestarTelegram"
-          method="post">
-    </form>
+    </div>
 
 </div>
+
+<style>
+
+    .telegram-status {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+
+    .telegram-status-ativo {
+        color: #00e696;
+    }
+
+    .telegram-status-pendente {
+        color: #ffc107;
+    }
+
+    .telegram-grupo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 20px;
+        padding: 14px 16px;
+        background: rgba(0, 230, 150, 0.06);
+        border: 1px solid rgba(0, 230, 150, 0.25);
+        border-radius: 8px;
+    }
+
+    .telegram-grupo-icone {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border-radius: 50%;
+        background: #00e696;
+        color: #06140f;
+        font-size: 18px;
+        font-weight: 900;
+    }
+
+    .telegram-grupo span {
+        display: block;
+        margin-bottom: 3px;
+        color: #00e696;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    .telegram-grupo strong {
+        color: #dce7ed;
+        font-size: 13px;
+    }
+
+    .telegram-separador {
+        height: 1px;
+        margin: 28px 0;
+        background: #1b303b;
+    }
+
+    .telegram-instrucoes ol {
+        margin: 15px 0 0;
+        padding-left: 20px;
+        color: #9aabb4;
+    }
+
+    .telegram-instrucoes li {
+        margin-bottom: 8px;
+        padding-left: 4px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .telegram-instrucoes strong {
+        color: #dce7ed;
+    }
+
+</style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
